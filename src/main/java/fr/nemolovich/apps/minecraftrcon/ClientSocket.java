@@ -67,18 +67,14 @@ public class ClientSocket {
         return packet.getId();
     }
 
-    public String readResponse(int requestId) {
+    public String readResponse(int requestId) throws IOException {
         String response = null;
         byte[] buffer = new byte[PacketConstants.MAX_BUFFER_SIZE];
         int length = 0;
 
-        try {
-            while (this.input.available() > 0 || length < 10) {
-                byte b = this.input.readByte();
-                buffer[length++] = b;
-            }
-        } catch (IOException ex) {
-            LOGGER.error("Error while reading response", ex);
+        while (this.input.available() > 0 || length < 10) {
+            byte b = this.input.readByte();
+            buffer[length++] = b;
         }
 
         byte[] size = Arrays.copyOfRange(buffer,
