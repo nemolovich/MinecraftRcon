@@ -13,11 +13,11 @@ public class Connector {
         BasicConfigurator.configure();
 
         ClientSocket socket = new ClientSocket("192.168.1.69", 20066,
-            "Minecraft2580");
+            "RCONPass");
 
         int requestId = socket.sendRequest("/help");
         String response = socket.readResponse(requestId);
-        System.out.println(response);
+        System.out.print(response);
 
         socket.close();
     }
