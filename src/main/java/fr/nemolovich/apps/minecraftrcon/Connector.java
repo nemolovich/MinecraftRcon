@@ -1,6 +1,7 @@
 package fr.nemolovich.apps.minecraftrcon;
 
 import fr.nemolovich.apps.minecraftrcon.exceptions.AuthenticationException;
+import fr.nemolovich.apps.minecraftrcon.exceptions.ConnectionException;
 import fr.nemolovich.apps.minecraftrcon.gui.MainFrame;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -96,7 +97,7 @@ public class Connector {
         controls.add(passwordField);
         panel.add(controls, BorderLayout.CENTER);
 
-        hostField.setText("nemolovich.dynamic-dns.net:20066");
+        hostField.setText("raspberry:20066");
         passwordField.setText("Minecraft2580");
 
         String host;
@@ -131,7 +132,7 @@ public class Connector {
                     mf = new MainFrame(new ClientSocket(
                         hostName, hostPort, password));
                     mf.setVisible(true);
-                } catch (AuthenticationException e) {
+                } catch (AuthenticationException | ConnectionException e) {
                     if (mf != null) {
                         mf.close();
                     }

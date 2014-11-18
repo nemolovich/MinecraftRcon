@@ -43,6 +43,7 @@ public class CommandsUtils {
             result.add(command.getCommandName());
         }
         result.addAll(SERVER_COMMANDS);
+        Collections.sort(result);
 
         return result;
     }

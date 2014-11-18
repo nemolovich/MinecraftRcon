@@ -6,6 +6,7 @@
 package fr.nemolovich.apps.minecraftrcon;
 
 import fr.nemolovich.apps.minecraftrcon.exceptions.AuthenticationException;
+import fr.nemolovich.apps.minecraftrcon.exceptions.ConnectionException;
 import fr.nemolovich.apps.minecraftrcon.packet.Packet;
 import fr.nemolovich.apps.minecraftrcon.packet.PacketConstants;
 import fr.nemolovich.apps.minecraftrcon.packet.PacketType;
@@ -30,28 +31,26 @@ public class ClientSocket {
     private DataInputStream input;
     private DataOutputStream output;
 
-    public ClientSocket(String host, int port, String password) throws AuthenticationException {
+    public ClientSocket(String host, int port, String password)
+        throws ConnectionException, AuthenticationException {
         try {
             this.socket = new Socket(host, port);
         } catch (IOException ex) {
-            LOGGER.error(String.format(
-                "Can not access to host '%s' on port '%d'", host, port), ex);
+            throw new ConnectionException(host, port, ex);
         }
-        if (this.socket != null) {
-            LOGGER.info(String.format("Connected to '%s'", host));
-            try {
-                this.input = new DataInputStream(
-                    this.socket.getInputStream());
-                this.output = new DataOutputStream(
-                    this.socket.getOutputStream());
-            } catch (IOException ex) {
-                LOGGER.error(String.format(
-                    "Can not open stream from connection"), ex);
-            }
-            if (this.input != null && this.output != null) {
-                if (this.requestForConnection(password)) {
-                    LOGGER.info("Authentication succeed!");
-                }
+        LOGGER.info(String.format("Connected to '%s'", host));
+        try {
+            this.input = new DataInputStream(
+                this.socket.getInputStream());
+            this.output = new DataOutputStream(
+                this.socket.getOutputStream());
+        } catch (IOException ex) {
+            LOGGER.error(String.format(
+                "Can not open stream from connection"), ex);
+        }
+        if (this.input != null && this.output != null) {
+            if (this.requestForConnection(password)) {
+                LOGGER.info("Authentication succeed!");
             }
         }
     }
