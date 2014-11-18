@@ -11,6 +11,7 @@ package fr.nemolovich.apps.minecraftrcon.gui;
  */
 public enum Level {
     INFO,
+    FINE,
     ERROR,
     WARNING
 }

@@ -34,13 +34,6 @@ public class Connector {
     public static void main(String[] args) throws AuthenticationException {
         BasicConfigurator.configure();
 
-//        ClientSocket socket = new ClientSocket("192.168.1.69", 20066,
-//            "RCONPass");
-//        int requestId = socket.sendRequest("/help");
-//        String response = socket.readResponse(requestId);
-//        System.out.print(response);
-//
-//        socket.close();
         /* Set the Nimbus look and feel */
         // <editor-fold defaultstate="collapsed"
         // desc=" Look and feel setting code (optional) ">
@@ -103,7 +96,7 @@ public class Connector {
         controls.add(passwordField);
         panel.add(controls, BorderLayout.CENTER);
 
-        hostField.setText("raspberry:20066");
+        hostField.setText("nemolovich.dynamic-dns.net:20066");
         passwordField.setText("Minecraft2580");
 
         String host;
