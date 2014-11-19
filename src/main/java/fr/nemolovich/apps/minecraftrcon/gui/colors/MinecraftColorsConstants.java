@@ -2,7 +2,7 @@ package fr.nemolovich.apps.minecraftrcon.gui.colors;
 
 public interface MinecraftColorsConstants {
 
-    public static final String MINECRAFT_COLOR_PREFIX = "§";
+    public static final String MINECRAFT_COLOR_PREFIX = "\u00A7";
     
     public static final char BLACK_COLOR_CODE = '0';
     public static final String BLACK_COLOR_NAME = "Black";
