@@ -11,11 +11,9 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
@@ -47,7 +45,9 @@ public class Launcher {
     public static void main(String[] args) throws AuthenticationException {
         BasicConfigurator.configure();
 
-        if (args.length > 1) {
+        args = new String[1];
+        args[0] = "-u";
+        if (args.length > 0) {
             if (args[0].equalsIgnoreCase("--update")
                 || args[0].equalsIgnoreCase("-u")) {
                 checkForUpdates();
@@ -154,29 +154,50 @@ public class Launcher {
         });
     }
 
-    public static void doNotUse(String chose, String machin) throws IOException {
+    public static final void doNotUse(String chose, String machin) throws IOException {
 
         File f = new File(chose);
 
         URL truc = new URL(machin);
-        JarURLConnection bidule = (JarURLConnection) truc.openConnection();
 
-        Attributes atts = bidule.getMainAttributes();
-        System.out.println(atts.getValue(Attributes.Name.IMPLEMENTATION_VERSION));
+        Attributes bidule = getManifestAttributes(truc);
+        System.out.println(bidule.getValue(Attributes.Name.IMPLEMENTATION_VERSION));
 
         try (ObjectOutputStream porte = new ObjectOutputStream(
             new BufferedOutputStream(new FileOutputStream(f)))) {
-            porte.writeChars(atts.getValue(Attributes.Name.IMPLEMENTATION_VERSION));
+            porte.writeChars(bidule.getValue(Attributes.Name.IMPLEMENTATION_VERSION));
         }
+    }
+
+    private static Attributes getManifestAttributes(URL url) throws IOException {
+
+        JarURLConnection conn = (JarURLConnection) url.openConnection();
+
+        return conn.getMainAttributes();
     }
 
     private static void checkForUpdates() {
         try {
-            InputStream is = new FileInputStream(
-                "https://github.com/nemolovich/MinecraftRcon/MinecraftRcon.db");
+            final URL url = new URL("http://cdn.rawgit.com/nemolovich/MinecraftRcon/master/MinecraftRcon.db");
 
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(Launcher.class).error("Can not retrieve remote version");
+            StringBuilder version;
+            try (ObjectInputStream is = new ObjectInputStream(
+                url.openStream())) {
+                version = new StringBuilder();
+                while (is.available() > 0) {
+                    version.append(is.readChar());
+                }
+            }
+            double remoteVersion;
+            try {
+                remoteVersion = Double.valueOf(version.toString());
+            } catch (NumberFormatException e) {
+                throw new IOException("Unavailable remote version");
+            }
+            Logger.getLogger(Launcher.class).info("Remote version: " + remoteVersion);
+
+        } catch (IOException ex) {
+            Logger.getLogger(Launcher.class).error("Can not retrieve remote version", ex);
         }
     }
 }
