@@ -9,6 +9,17 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectOutputStream;
+import java.net.JarURLConnection;
+import java.net.URL;
+import java.util.jar.Attributes;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -19,10 +30,11 @@ import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
 import org.jdesktop.swingx.JXErrorPane;
 import org.jdesktop.swingx.error.ErrorInfo;
 
-public class Connector {
+public class Launcher {
 
     private static final Pattern HOST_PATTERN = Pattern.compile("^(?<host>("
         + "(\\d{1,3}\\.){3}\\d{1,3})|([A-Za-z0-9.-]+))"
@@ -35,15 +47,14 @@ public class Connector {
     public static void main(String[] args) throws AuthenticationException {
         BasicConfigurator.configure();
 
-        /* Set the Nimbus look and feel */
-        // <editor-fold defaultstate="collapsed"
-        // desc=" Look and feel setting code (optional) ">
-		/*
-         * If Nimbus (introduced in Java SE 6) is not available, stay with the
-         * default look and feel. For details see
-         * http://download.oracle.com/javase
-         * /tutorial/uiswing/lookandfeel/plaf.html
-         */
+        if (args.length > 1) {
+            if (args[0].equalsIgnoreCase("--update")
+                || args[0].equalsIgnoreCase("-u")) {
+                checkForUpdates();
+                return;
+            }
+        }
+
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager
                 .getInstalledLookAndFeels()) {
@@ -57,9 +68,6 @@ public class Connector {
             java.util.logging.Logger.getLogger(MainFrame.class.getName()).log(
                 java.util.logging.Level.SEVERE, null, ex);
         }
-		// </editor-fold>
-
-        // </editor-fold>
         JPanel panel = new JPanel(new BorderLayout(6, 6));
 
         JPanel header = new JPanel(new GridLayout(1, 0, 2, 2));
@@ -144,5 +152,31 @@ public class Connector {
                 }
             }
         });
+    }
+
+    public static void doNotUse(String chose, String machin) throws IOException {
+
+        File f = new File(chose);
+
+        URL truc = new URL(machin);
+        JarURLConnection bidule = (JarURLConnection) truc.openConnection();
+
+        Attributes atts = bidule.getMainAttributes();
+        System.out.println(atts.getValue(Attributes.Name.IMPLEMENTATION_VERSION));
+
+        try (ObjectOutputStream porte = new ObjectOutputStream(
+            new BufferedOutputStream(new FileOutputStream(f)))) {
+            porte.writeChars(atts.getValue(Attributes.Name.IMPLEMENTATION_VERSION));
+        }
+    }
+
+    private static void checkForUpdates() {
+        try {
+            InputStream is = new FileInputStream(
+                "https://github.com/nemolovich/MinecraftRcon/MinecraftRcon.db");
+
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Launcher.class).error("Can not retrieve remote version");
+        }
     }
 }

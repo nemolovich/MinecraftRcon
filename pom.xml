@@ -5,6 +5,7 @@
     <version>0.1</version>
     <name>Minecraft RCON</name>
     <description>Minecraft RCON administration</description>
+    <packaging>jar</packaging>
   
     <dependencies>
         <dependency>
@@ -54,9 +55,12 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>fr.nemolovich.apps.homeapp.admin.gui.MainFrame</mainClass>
+                            <mainClass>fr.nemolovich.apps.minecraftrcon.Launcher</mainClass>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                         </manifest>
                     </archive>
+                    <finalName>${project.artifactId}-${project.version}</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
                 <executions>
                     <execution>
