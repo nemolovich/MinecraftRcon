@@ -52,13 +52,13 @@ public class Launcher {
     public static void main(String[] args) throws AuthenticationException {
         BasicConfigurator.configure();
 
-        if (true) {
-            try {
-                doNotUse("MinecraftRcon.db", "jar:file:/C:/Users/Nemolovich/Desktop/MinecraftRCON/MinecraftRcon.jar!/");
-            } catch (IOException ex) {
-                java.util.logging.Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
+//        if (true) {
+//            try {
+//                doNotUse("MinecraftRcon.db", "jar:file:/C:/Users/Nemolovich/Desktop/MinecraftRCON/MinecraftRcon.jar!/");
+//            } catch (IOException ex) {
+//                java.util.logging.Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+//            }
+//        }
 
         if (args.length > 0) {
 
@@ -190,6 +190,7 @@ public class Launcher {
         try (ObjectOutputStream porte = new ObjectOutputStream(
             new BufferedOutputStream(new FileOutputStream(f)))) {
             porte.writeInt(thing);
+            porte.writeChar('|');
             porte.writeChars(bidule
                 .getValue(Attributes.Name.IMPLEMENTATION_VERSION));
         }
@@ -274,9 +275,14 @@ public class Launcher {
             StringBuilder version;
             try (ObjectInputStream is = new ObjectInputStream(url.openStream())) {
                 fileSize = is.readInt();
-                version = new StringBuilder();
-                while (is.available() > 0) {
-                    version.append(is.readChar());
+                if(is.readChar()=='|') {
+                    version = new StringBuilder();
+                    while (is.available() > 0) {
+                        version.append(is.readChar());
+                    }
+                } else {
+                    LOGGER.error("Can not retrieve remote information");
+                    return;
                 }
             }
             String remoteVersion;
@@ -339,7 +345,7 @@ public class Launcher {
             } else {
                 JOptionPane.showMessageDialog(null,
                     "The software is already up-to-date",
-                    "No update found", JOptionPane.OK_OPTION);
+                    "No update found", JOptionPane.INFORMATION_MESSAGE);
             }
 
         } catch (IOException ex) {
