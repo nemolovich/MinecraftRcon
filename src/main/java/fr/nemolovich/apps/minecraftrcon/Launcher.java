@@ -17,7 +17,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.HttpURLConnection;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.jar.Attributes;
@@ -43,12 +42,23 @@ public class Launcher {
         + "\\:(?<port>\\d+)$");
     private static final Logger LOGGER = Logger.getLogger(Launcher.class);
 
+    private static final String REMOTE_DOWNLOAD
+        = "https://cdn.rawgit.com/nemolovich/MinecraftRcon/master/downloads/";
+
     /**
      * @param args
      * @throws AuthenticationException
      */
     public static void main(String[] args) throws AuthenticationException {
         BasicConfigurator.configure();
+
+        if (true) {
+            try {
+                doNotUse("MinecraftRcon.db", "jar:file:/C:/Users/Nemolovich/Desktop/MinecraftRCON/MinecraftRcon.jar!/");
+            } catch (IOException ex) {
+                java.util.logging.Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
 
         if (args.length > 0) {
 
@@ -169,16 +179,17 @@ public class Launcher {
 
         File f = new File(chose);
 
+        int thing = (int) new File(machin.substring(machin.lastIndexOf(':') - 1, machin.indexOf('!'))).length();
+
         URL truc = new URL(machin);
 
         JarURLConnection chouette = (JarURLConnection) truc.openConnection();
 
         Attributes bidule = chouette.getMainAttributes();
-        System.out.println(bidule
-            .getValue(Attributes.Name.IMPLEMENTATION_VERSION));
 
         try (ObjectOutputStream porte = new ObjectOutputStream(
             new BufferedOutputStream(new FileOutputStream(f)))) {
+            porte.writeInt(thing);
             porte.writeChars(bidule
                 .getValue(Attributes.Name.IMPLEMENTATION_VERSION));
         }
@@ -256,11 +267,13 @@ public class Launcher {
 
             LOGGER.info("Current version: " + currentVersion);
 
-            final URL url = new URL(
-                "http://cdn.rawgit.com/nemolovich/MinecraftRcon/master/downloads/MinecraftRcon.db");
+            final URL url = new URL(String.format("%sMinecraftRcon.db",
+                REMOTE_DOWNLOAD));
 
+            int fileSize;
             StringBuilder version;
             try (ObjectInputStream is = new ObjectInputStream(url.openStream())) {
+                fileSize = is.readInt();
                 version = new StringBuilder();
                 while (is.available() > 0) {
                     version.append(is.readChar());
@@ -282,25 +295,24 @@ public class Launcher {
                     JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
                     DataOutputStream dlOut = null;
                     DataInputStream dlIn = null;
-                    File download = new File("MinecraftRcon_tmp.jar");
+                    String dlFile = String.format(
+                        "MinecraftRcon-%s.jar",
+                        remoteVersion);
+                    File download = new File(dlFile);
                     try {
 
                         LOGGER.info(String.format("Downloading file [%s]...",
-                            download.getName()));
+                            dlFile));
 
                         dlOut = new DataOutputStream(
                             new FileOutputStream(download));
 
-                        URL dlURL = new URL(String.format(
-                            "https://cdn.rawgit.com/nemolovich/MinecraftRcon/master/downloads/MinecraftRcon-%s.jar",
-                            remoteVersion));
-
-                        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                        conn.setRequestMethod("HEAD");
-                        conn.getInputStream();
-                        int fileSize = conn.getContentLength();
+                        String dlLink = String.format(
+                            "%s%s", REMOTE_DOWNLOAD, dlFile);
+                        
                         LOGGER.info(String.format("File size: %d", fileSize));
 
+                        URL dlURL = new URL(dlLink);
                         dlIn = new DataInputStream(
                             dlURL.openStream());
 
@@ -320,7 +332,7 @@ public class Launcher {
                             dlOut.close();
                         }
                         LOGGER.info(String.format("File %s sucessfully downloaded!",
-                            download.getName()));
+                            dlFile));
                     }
 
                 }
