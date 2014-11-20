@@ -43,7 +43,7 @@ public class Launcher {
     private static final Logger LOGGER = Logger.getLogger(Launcher.class);
 
     private static final String REMOTE_DOWNLOAD
-        = "https://cdn.rawgit.com/nemolovich/MinecraftRcon/master/downloads/";
+        = "https://rawgit.com/nemolovich/MinecraftRcon/master/downloads/";
 
     /**
      * @param args
@@ -59,7 +59,6 @@ public class Launcher {
 //                java.util.logging.Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
 //            }
 //        }
-
         if (args.length > 0) {
 
             for (String arg : args) {
@@ -271,11 +270,11 @@ public class Launcher {
             final URL url = new URL(String.format("%sMinecraftRcon.db",
                 REMOTE_DOWNLOAD));
 
-            int fileSize;
+            int fileSize = -1;
             StringBuilder version;
             try (ObjectInputStream is = new ObjectInputStream(url.openStream())) {
                 fileSize = is.readInt();
-                if(is.readChar()=='|') {
+                if (is.readChar() == '|') {
                     version = new StringBuilder();
                     while (is.available() > 0) {
                         version.append(is.readChar());
@@ -315,7 +314,7 @@ public class Launcher {
 
                         String dlLink = String.format(
                             "%s%s", REMOTE_DOWNLOAD, dlFile);
-                        
+
                         LOGGER.info(String.format("File size: %d", fileSize));
 
                         URL dlURL = new URL(dlLink);
@@ -325,11 +324,23 @@ public class Launcher {
                         byte buffer[] = new byte[512];
                         int dlSize = 0;
                         int len;
+                        String total = "";
                         while ((len = dlIn.read(buffer)) != -1) {
                             dlOut.write(buffer, 0, len);
                             dlSize += len;
-                            LOGGER.info(String.format("%d/%d", dlSize, fileSize));
+                            int pct = (int) ((double) (dlSize * 100.) / (double) fileSize);
+
+                            total = "";
+                            for (int i = 0; i < pct / 5; i++) {
+                                total += "#";
+                            }
+                            System.out.print(String.format(
+                                "Downloading file: [%-20s] %d/%d KB %d%%\r",
+                                total, dlSize, fileSize, pct));
                         }
+                        LOGGER.info(String.format(
+                            "Downloading file: [%-20s] %d/%d KB %d%%",
+                            total, fileSize, fileSize, 100));
                     } finally {
                         if (dlIn != null) {
                             dlIn.close();
