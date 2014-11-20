@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.nemolovich.apps.minecraftrcon</groupId>
     <artifactId>MinecraftRcon</artifactId>
-    <version>0.1</version>
+    <version>0.0.1</version>
     <name>Minecraft RCON</name>
     <description>Minecraft RCON administration</description>
     <packaging>jar</packaging>
