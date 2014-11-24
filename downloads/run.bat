@@ -1,12 +1,10 @@
 @echo off
 SETLOCAL
 
-set APPLI_VERSION=0.1
-set APPLI_NAME=MinecraftRcon-%APPLI_VERSION%
+set APPLI_NAME=MinecraftRcon
 
 echo =============================================
 echo === Nemolovich Minecraft RCON Application ===
-echo === Version: %APPLI_VERSION%                ===
 echo =============================================
 echo .
 
@@ -27,31 +25,31 @@ echo .
 set PROGRAMS=%ProgramFiles%
 if defined ProgramFiles(x86) set PROGRAMS32=%ProgramFiles(x86)%
 
-IF not EXIST "%PROGRAMS%\Java\jdk7" goto JAVA6
+IF not EXIST "%PROGRAMS%\Java\jdk7" goto JRE7
 set JAVA_HOME=%PROGRAMS%\Java\jdk7
 goto JAVA_OK
 
-:JAVA6
-IF not EXIST "%PROGRAMS%\Java\jre6" goto JAVANO
-set JAVA_HOME=%PROGRAMS%\Java\jre6
+:JRE7
+IF not EXIST "%PROGRAMS%\Java\jre7" goto JAVANO
+set JAVA_HOME=%PROGRAMS%\Java\jre7
 goto JAVA_OK
 
 :JAVANO
 if not defined %PROGRAMS32% goto JAVANO32
 
-IF not EXIST "%PROGRAMS32%\Java\jre7" goto JAVA6
-set JAVA_HOME=%PROGRAMS32%\Java\jre7
+IF not EXIST "%PROGRAMS32%\Java\jdk7" goto JRE7
+set JAVA_HOME=%PROGRAMS32%\Java\jdk7
 goto JAVA_OK
 
-:JAVA6
-IF not EXIST "%PROGRAMS32%\Java\jre6" goto JAVANO32
-set JAVA_HOME=%PROGRAMS32%\Java\jre6
+:JRE7
+IF not EXIST "%PROGRAMS32%\Java\jre7" goto JAVANO32
+set JAVA_HOME=%PROGRAMS32%\Java\jre7
 goto JAVA_OK
 
 :JAVANO32
 echo === Java not found in standard places %PROGRAMS% or %PROGRAMS32%
 echo === JAVA_HOME not specified
-goto STOPIT
+goto ERROR
 
 :JAVA_OK 
 echo === Running this Java
@@ -62,14 +60,16 @@ echo === Trying to start Nemolovich Minecraft RCON Application
 echo === Using: %PARMS% -jar %APPLI_HOME%%APPLI_NAME%.jar %APPLI_COMMAND%
 "%JAVA_HOME%\bin\java.exe" %PARMS% -jar "%APPLI_HOME%%APPLI_NAME%.jar" %APPLI_COMMAND%
 
+GOTO EOF
+:ERROR
+echo =============================================
+echo === Ended with some errors                ===
+echo =============================================
 GOTO FINALLY
-:STOPIT
-echo =============================================
-echo.=== Ended with some errors                ===
-echo =============================================
 
+:EOF
+echo =============================================
+echo === Application terminated                ===
+echo =============================================
 :FINALLY
-echo =============================================
-echo.=== Application terminated                ===
-echo =============================================
 ENDLOCAL

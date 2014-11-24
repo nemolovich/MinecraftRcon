@@ -3,6 +3,8 @@ package fr.nemolovich.apps.minecraftrcon;
 import fr.nemolovich.apps.minecraftrcon.exceptions.AuthenticationException;
 import fr.nemolovich.apps.minecraftrcon.exceptions.ConnectionException;
 import fr.nemolovich.apps.minecraftrcon.gui.MainFrame;
+import fr.nemolovich.apps.minecraftrcon.update.Updater;
+import fr.nemolovich.apps.minecraftrcon.update.WindowsUpdater;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
@@ -19,6 +21,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
@@ -45,6 +50,8 @@ public class Launcher {
     private static final String REMOTE_DOWNLOAD
         = "https://rawgit.com/nemolovich/MinecraftRcon/master/downloads/";
 
+    private static final String APP_NAME = "MinecraftRcon";
+
     /**
      * @param args
      * @throws AuthenticationException
@@ -52,19 +59,23 @@ public class Launcher {
     public static void main(String[] args) throws AuthenticationException {
         BasicConfigurator.configure();
 
-//        if (true) {
-//            try {
-//                doNotUse("MinecraftRcon.db", "jar:file:/C:/Users/Nemolovich/Desktop/MinecraftRCON/MinecraftRcon.jar!/");
-//            } catch (IOException ex) {
-//                java.util.logging.Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
-//            }
-//        }
+        if (true) {
+            try {
+                doNotUse("MinecraftRcon.db", "jar:file:/C:/Users/Nemolovich/Desktop/MinecraftRCON/MinecraftRcon.jar!/");
+                return;
+            } catch (IOException ex) {
+                java.util.logging.Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+                return;
+            }
+        }
         if (args.length > 0) {
 
             for (String arg : args) {
                 if (arg.equalsIgnoreCase("--update")
                     || arg.equalsIgnoreCase("-u")) {
-                    checkForUpdates();
+                    String[] dst = new String[args.length];
+                    System.arraycopy(args, 0, dst, 0, args.length);
+                    checkForUpdates(dst);
                     return;
                 } else if (arg.equalsIgnoreCase("--version")
                     || arg.equalsIgnoreCase("-v")) {
@@ -259,7 +270,7 @@ public class Launcher {
         return result;
     }
 
-    private static void checkForUpdates() {
+    private static void checkForUpdates(String... args) {
         try {
             LOGGER.info("Check for updates...");
 
@@ -267,10 +278,10 @@ public class Launcher {
 
             LOGGER.info("Current version: " + currentVersion);
 
-            final URL url = new URL(String.format("%sMinecraftRcon.db",
-                REMOTE_DOWNLOAD));
+            final URL url = new URL(String.format("%s%s.db",
+                REMOTE_DOWNLOAD, APP_NAME));
 
-            int fileSize = -1;
+            int fileSize;
             StringBuilder version;
             try (ObjectInputStream is = new ObjectInputStream(url.openStream())) {
                 fileSize = is.readInt();
@@ -301,7 +312,7 @@ public class Launcher {
                     DataOutputStream dlOut = null;
                     DataInputStream dlIn = null;
                     String dlFile = String.format(
-                        "MinecraftRcon-%s.jar",
+                        "%s-%s.jar", APP_NAME,
                         remoteVersion);
                     File download = new File(dlFile);
                     try {
@@ -338,8 +349,8 @@ public class Launcher {
                                 "Downloading file: [%-20s] %d/%d KB %d%%\r",
                                 total, dlSize, fileSize, pct));
                         }
-                        LOGGER.info(String.format(
-                            "Downloading file: [%-20s] %d/%d KB %d%%",
+                        System.out.print(String.format(
+                            "Downloading file: [%-20s] %d/%d KB %d%%\r",
                             total, fileSize, fileSize, 100));
                     } finally {
                         if (dlIn != null) {
@@ -351,7 +362,20 @@ public class Launcher {
                         LOGGER.info(String.format("File %s sucessfully downloaded!",
                             dlFile));
                     }
-
+                    List<String> optArgs = new ArrayList(Arrays.asList(args));
+                    optArgs.remove("-u");
+                    optArgs.remove("--update");
+                    Updater updater = new WindowsUpdater(
+                        String.format("%s.jar", APP_NAME), dlFile,
+                        optArgs.toArray(new String[0]));
+                    try {
+                        updater.update();
+                    } catch (IOException ioe) {
+                        JXErrorPane.showDialog(null,
+                            new ErrorInfo("Restarting error",
+                                "The application failed to restart", null,
+                                "Error", ioe, Level.SEVERE, null));
+                    }
                 }
             } else {
                 JOptionPane.showMessageDialog(null,
