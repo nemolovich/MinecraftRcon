@@ -6,20 +6,54 @@ set APPLI_NAME=MinecraftRcon
 echo =============================================
 echo === Nemolovich Minecraft RCON Application ===
 echo =============================================
-echo .
+echo.
 
 set APPLI_HOME=%~dp0
 set PARMS=-Xms64M -Xmx512M
 
-if "%1"=="--debug" if "%2" NEQ "" (
-	set PARMS=%PARMS% -Xdebug -Xrunjdwp:transport=dt_socket,server=n,address=%2
+:CHECKARGS
+echo Check args
+if "%~1"=="" (
+	GOTO ARGSOK
 )
+if "%~1"=="--java-home" (
+	if "%~2" NEQ "" (
+		echo Define JAVA_HOME at [%~2]
+		set JAVA_HOME=%~2
+		shift
+		shift
+	) else (
+		GOTO NEXT
+	)
+) else (
+	echo Not!
+	if "%~1"=="--debug" (
+		if "%~2" NEQ "" (
+			set PARMS=%PARMS% -Xdebug -Xrunjdwp:transport=dt_socket,server=n,address=%2
+			echo set Debug on %~2
+			shift
+			shift
+		) else (
+			GOTO NEXT
+		)
+	) else (
+		GOTO NEXT
+	)
+)
+GOTO CHECKARGS
 
+:NEXT
+shift
+GOTO CHECKARGS
+
+:ARGSOK
+echo Check java
 if not defined JAVA_HOME goto CHECKJAVA
+echo check exist "%JAVA_HOME%\bin\java.exe"
 IF EXIST "%JAVA_HOME%\bin\java.exe" goto JAVA_OK
 echo === JAVA_HOME specified but not useable %JAVA_HOME%
 echo === looking for Java in standard places
-echo .
+echo.
 
 :CHECKJAVA
 set PROGRAMS=%ProgramFiles%

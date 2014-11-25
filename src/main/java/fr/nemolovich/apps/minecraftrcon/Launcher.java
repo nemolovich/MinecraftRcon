@@ -59,15 +59,15 @@ public class Launcher {
     public static void main(String[] args) throws AuthenticationException {
         BasicConfigurator.configure();
 
-        if (true) {
-            try {
-                doNotUse("MinecraftRcon.db", "jar:file:/C:/Users/Nemolovich/Desktop/MinecraftRCON/MinecraftRcon.jar!/");
-                return;
-            } catch (IOException ex) {
-                java.util.logging.Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
-                return;
-            }
-        }
+//        if (true) {
+//            try {
+//                doNotUse("MinecraftRcon.db", "jar:file:/C:/Users/Nemolovich/Desktop/MinecraftRCON/MinecraftRcon.jar!/");
+//                return;
+//            } catch (IOException ex) {
+//                java.util.logging.Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE, null, ex);
+//                return;
+//            }
+//        }
         if (args.length > 0) {
 
             for (String arg : args) {
@@ -79,7 +79,7 @@ public class Launcher {
                     return;
                 } else if (arg.equalsIgnoreCase("--version")
                     || arg.equalsIgnoreCase("-v")) {
-                    System.out.printf("MinecraftRCON version %s%n", getCurrentVersion());
+                    System.out.printf("Nemolovich MinecraftRCON version %s%n", getCurrentVersion());
                 }
             }
         }
