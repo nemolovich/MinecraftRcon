@@ -12,7 +12,6 @@ set APPLI_HOME=%~dp0
 set PARMS=-Xms64M -Xmx512M
 
 :CHECKARGS
-echo Check args
 if "%~1"=="" (
 	GOTO ARGSOK
 )
@@ -26,7 +25,6 @@ if "%~1"=="--java-home" (
 		GOTO NEXT
 	)
 ) else (
-	echo Not!
 	if "%~1"=="--debug" (
 		if "%~2" NEQ "" (
 			set PARMS=%PARMS% -Xdebug -Xrunjdwp:transport=dt_socket,server=n,address=%2
@@ -47,9 +45,7 @@ shift
 GOTO CHECKARGS
 
 :ARGSOK
-echo Check java
 if not defined JAVA_HOME goto CHECKJAVA
-echo check exist "%JAVA_HOME%\bin\java.exe"
 IF EXIST "%JAVA_HOME%\bin\java.exe" goto JAVA_OK
 echo === JAVA_HOME specified but not useable %JAVA_HOME%
 echo === looking for Java in standard places

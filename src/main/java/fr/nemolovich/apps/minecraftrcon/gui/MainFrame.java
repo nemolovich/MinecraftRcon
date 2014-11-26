@@ -6,11 +6,14 @@
 package fr.nemolovich.apps.minecraftrcon.gui;
 
 import fr.nemolovich.apps.minecraftrcon.ClientSocket;
+import fr.nemolovich.apps.minecraftrcon.exceptions.AuthenticationException;
+import fr.nemolovich.apps.minecraftrcon.exceptions.ConnectionException;
 import fr.nemolovich.apps.minecraftrcon.gui.colors.MinecraftColors;
 import fr.nemolovich.apps.minecraftrcon.gui.colors.MinecraftColorsConstants;
 import fr.nemolovich.apps.minecraftrcon.gui.colors.MinecraftColorsUtil;
 import fr.nemolovich.apps.minecraftrcon.gui.command.Command;
 import fr.nemolovich.apps.minecraftrcon.gui.command.CommandsUtils;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
@@ -18,23 +21,33 @@ import java.awt.FocusTraversalPolicy;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JSeparator;
+import javax.swing.KeyStroke;
 import javax.swing.SwingWorker;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
+
 import org.apache.log4j.Logger;
 
 /**
@@ -43,288 +56,365 @@ import org.apache.log4j.Logger;
  */
 public class MainFrame extends javax.swing.JFrame {
 
-    /**
-     * UID
-     */
-    private static final long serialVersionUID = 2901406508413961272L;
+	/**
+	 * UID
+	 */
+	private static final long serialVersionUID = 2901406508413961272L;
 
-    private static final Logger LOGGER = Logger.getLogger(MainFrame.class);
+	private static final Logger LOGGER = Logger.getLogger(MainFrame.class);
 
-    /*
-     * Resources
-     */
-    private static final String FRAME_ICON = "icon/icon.png";
-    private static final String RESOURCES_PATH = "/fr/nemolovich/apps/minecraftrcon/gui/";
-    /*
-     * Commands
-     */
+	/*
+	 * Resources
+	 */
+	private static final String FRAME_ICON = "icon/icon.png";
+	private static final String RESOURCES_PATH = "/fr/nemolovich/apps/minecraftrcon/gui/";
+	/*
+	 * Commands
+	 */
 
-    private static final Pattern SERVER_BASIC_COMMAND_PATTERN = Pattern
-        .compile("\n(?<cmd>/\\w+(-\\w+)*):\\s");
-    private static final Pattern SERVER_COMMAND_PAGES_PATTERN = Pattern
-        .compile("^.*-{4,}\\s.+:\\s\\(\\d+/(?<nbPages>\\d+)\\)\\s-{4,}.*");
-    private static final Pattern SERVER_CUSTOM_COMMAND_PATTERN = Pattern
-        .compile("\n(?<cmd>\\w+(-\\w+)*):\\s");
+	private static final Pattern SERVER_BASIC_COMMAND_PATTERN = Pattern
+			.compile("\n(?<cmd>/\\w+(-\\w+)*):\\s");
+	private static final Pattern SERVER_COMMAND_PAGES_PATTERN = Pattern
+			.compile("-{7,}\\s.+:\\s.+\\s\\(\\d+/(?<nbPages>\\d+)\\)\\s-{7,}.*");
+	private static final Pattern SERVER_CUSTOM_COMMAND_PATTERN = Pattern
+			.compile("\n(?<cmd>\\w+(-\\w+)*):\\s");
 
-    /*
-     * Log styles
-     */
-    private static final StyleContext sc = new StyleContext();
-    private static final Style DEFAULT_STYLE = sc
-        .getStyle(StyleContext.DEFAULT_STYLE);
-    private static final Style FINE_STYLE = sc.addStyle("FINE_STYLE",
-        DEFAULT_STYLE);
-    private static final Style ERROR_STYLE = sc.addStyle("ERROR_STYLE",
-        DEFAULT_STYLE);
-    private static final Style WARNING_STYLE = sc.addStyle("WARNING_STYLE",
-        DEFAULT_STYLE);
-    private static final List<Style> MINECRAFT_STYLES;
+	/*
+	 * Log styles
+	 */
+	private static final StyleContext sc = new StyleContext();
+	private static final Style DEFAULT_STYLE = sc
+			.getStyle(StyleContext.DEFAULT_STYLE);
+	private static final Style FINE_STYLE = sc.addStyle("FINE_STYLE",
+			DEFAULT_STYLE);
+	private static final Style ERROR_STYLE = sc.addStyle("ERROR_STYLE",
+			DEFAULT_STYLE);
+	private static final Style WARNING_STYLE = sc.addStyle("WARNING_STYLE",
+			DEFAULT_STYLE);
+	private static final List<Style> MINECRAFT_STYLES;
 
-    static {
-        StyleConstants.setForeground(DEFAULT_STYLE, Color.decode("#AAAAAA"));
-        StyleConstants.setForeground(FINE_STYLE, Color.decode("#55FF55"));
-        StyleConstants.setForeground(ERROR_STYLE, Color.decode("#FF5555"));
-        StyleConstants.setForeground(WARNING_STYLE, Color.decode("#FFAA00"));
+	static {
+		StyleConstants.setForeground(DEFAULT_STYLE, Color.decode("#AAAAAA"));
+		StyleConstants.setForeground(FINE_STYLE, Color.decode("#55FF55"));
+		StyleConstants.setForeground(ERROR_STYLE, Color.decode("#FF5555"));
+		StyleConstants.setForeground(WARNING_STYLE, Color.decode("#FFAA00"));
 
-        MINECRAFT_STYLES = Collections.synchronizedList(new ArrayList());
-        Style style;
-        for (MinecraftColors color : MinecraftColorsUtil.getColors()) {
-            style = sc.addStyle(color.getName().toUpperCase().concat("_STYLE"),
-                DEFAULT_STYLE);
-            StyleConstants.setForeground(style,
-                Color.decode(color.getForegroundColor()));
-            MINECRAFT_STYLES.add(style);
-        }
-    }
+		MINECRAFT_STYLES = Collections.synchronizedList(new ArrayList());
+		Style style;
+		for (MinecraftColors color : MinecraftColorsUtil.getColors()) {
+			style = sc.addStyle(color.getName().toUpperCase().concat("_STYLE"),
+					DEFAULT_STYLE);
+			StyleConstants.setForeground(style,
+					Color.decode(color.getForegroundColor()));
+			MINECRAFT_STYLES.add(style);
+		}
+	}
 
-    /*
-     * App variables
-     */
-    private final ClientSocket socket;
-    private final List<String> commandHistory;
-    private int currentHistoryIndex;
-    private String currentLine;
+	/*
+	 * App variables
+	 */
+	private ClientSocket socket;
+	private final List<String> commandHistory;
+	private int currentHistoryIndex;
+	private String currentLine;
+	private boolean connected;
 
-    /**
-     * Creates new form MainFrame
-     *
-     * @param socket
-     */
-    public MainFrame(ClientSocket socket) {
-        this.socket = socket;
+	private final String host;
+	private final int port;
+	private final String password;
 
-        this.commandHistory = Collections
-            .synchronizedList(new ArrayList<String>());
-        this.currentHistoryIndex = -1;
+	/**
+	 * Creates new form MainFrame
+	 *
+	 * @param socket
+	 * @throws AuthenticationException
+	 * @throws ConnectionException
+	 */
+	public MainFrame(String host, int port, String password)
+			throws ConnectionException, AuthenticationException {
+		this.host = host;
+		this.port = port;
+		this.password = password;
+		this.socket = new ClientSocket(host, port, password);
+		this.connected = true;
 
-        CommandsUtils
-            .addCommand(new CommandAdapter("/cls", "Clear the console") {
-                @Override
-                public String doCommand(String... args) {
-                    clearConsole();
-                    return null;
-                }
-            });
-        CommandsUtils.addCommand(new CommandAdapter("/quit",
-            "Leave the rcon application") {
-                @Override
-                public String doCommand(String... args) {
-                    new SwingWorker() {
+		this.commandHistory = Collections
+				.synchronizedList(new ArrayList<String>());
+		this.currentHistoryIndex = -1;
 
-                        @Override
-                        protected Object doInBackground() throws Exception {
-                            error(String
-                                .format("Closing application in 3 secondes%n"));
-                            Thread.sleep(3000);
-                            return null;
-                        }
+		CommandsUtils
+				.addCommand(new CommandAdapter("/cls", "Clear the console") {
+					@Override
+					public String doCommand(String... args) {
+						clearConsole();
+						return null;
+					}
+				});
+		CommandsUtils.addCommand(new CommandAdapter("/quit",
+				"Leave the rcon application") {
+			@Override
+			public String doCommand(String... args) {
+				new SwingWorker() {
 
-                        @Override
-                        protected void done() {
-                            close();
-                        }
-                    }.execute();
-                    return null;
-                }
-            });
-        CommandsUtils.addCommand(new CommandAdapter("/colors",
-            "Display minecraft colors") {
-                @Override
-                public String doCommand(String... args) {
-                    for (MinecraftColors color : MinecraftColorsUtil.getColors()) {
-                        info(String.format("%1$s%2$s%2$s - %3$s",
-                                MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX,
-                                color.getCode(), color.getName()));
-                    }
-                    return null;
-                }
-            });
+					@Override
+					protected Object doInBackground() throws Exception {
+						error(String
+								.format("Closing application in 3 secondes%n"));
+						Thread.sleep(3000);
+						return null;
+					}
 
-        try {
-            setIconImage(Toolkit.getDefaultToolkit().getImage(
-                MainFrame.class.getResource(RESOURCES_PATH
-                    .concat(FRAME_ICON))));
-        } catch (Exception e) {
-            LOGGER.warn("Can not load icon", e);
-        }
+					@Override
+					protected void done() {
+						close();
+					}
+				}.execute();
+				return null;
+			}
+		});
+		CommandsUtils.addCommand(new CommandAdapter("/colors",
+				"Display minecraft colors") {
+			@Override
+			public String doCommand(String... args) {
+				for (MinecraftColors color : MinecraftColorsUtil.getColors()) {
+					info(String.format("%1$s%2$s%2$s - %3$s",
+							MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX,
+							color.getCode(), color.getName()));
+				}
+				return null;
+			}
+		});
 
-        this.addWindowListener(new WindowAdapter() {
+		try {
+			setIconImage(Toolkit.getDefaultToolkit().getImage(
+					MainFrame.class.getResource(RESOURCES_PATH
+							.concat(FRAME_ICON))));
+		} catch (Exception e) {
+			LOGGER.warn("Can not load icon", e);
+		}
 
-            @Override
-            public void windowClosing(WindowEvent e) {
-                if (quitAskAction()) {
-                    exit();
-                }
-            }
-        });
+		this.addWindowListener(new WindowAdapter() {
 
-        initComponents();
+			@Override
+			public void windowClosing(WindowEvent e) {
+				if (quitAskAction()) {
+					exit();
+				}
+			}
+		});
+		JMenuBar menuBar = new JMenuBar();
 
-        setFocusTraversalPolicy(new FocusTraversalPolicy() {
+		JMenu fileMenu = new JMenu("File");
+		fileMenu.setMnemonic(KeyEvent.VK_F);
+		fileMenu.getAccessibleContext().setAccessibleDescription(
+				"File and Program menu");
 
-            @Override
-            public Component getComponentAfter(Container aContainer,
-                Component aComponent) {
+		JMenuItem quitMenuItem = new JMenuItem("Quit", KeyEvent.VK_Q);
+		quitMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F4,
+				ActionEvent.ALT_MASK));
+		quitMenuItem.setToolTipText("Quit the application");
+		quitMenuItem.addActionListener(new ActionListener() {
 
-                Component result = null;
-                if (aComponent.equals(output)) {
-                    result = copyButton;
-                } else if (aComponent.equals(commandField)) {
-                    result = copyButton;
-                } else if (aComponent.equals(copyButton)) {
-                    result = clearButton;
-                } else if (aComponent.equals(clearButton)) {
-                    result = playersButton;
-                } else if (aComponent.equals(playersButton)) {
-                    result = saveButton;
-                } else if (aComponent.equals(saveButton)) {
-                    result = stopButton;
-                } else if (aComponent.equals(stopButton)) {
-                    result = quitButton;
-                } else if (aComponent.equals(quitButton)) {
-                    result = output;
-                }
-                return result;
-            }
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (quitAskAction()) {
+					close();
+				}
+			}
+		});
 
-            @Override
-            public Component getComponentBefore(Container aContainer,
-                Component aComponent) {
-                Component result = null;
-                if (aComponent.equals(output)) {
-                    result = quitButton;
-                } else if (aComponent.equals(commandField)) {
-                    result = output;
-                } else if (aComponent.equals(copyButton)) {
-                    result = output;
-                } else if (aComponent.equals(clearButton)) {
-                    result = copyButton;
-                } else if (aComponent.equals(playersButton)) {
-                    result = clearButton;
-                } else if (aComponent.equals(saveButton)) {
-                    result = playersButton;
-                } else if (aComponent.equals(stopButton)) {
-                    result = saveButton;
-                } else if (aComponent.equals(quitButton)) {
-                    result = stopButton;
-                }
-                return result;
-            }
+		JMenuItem reconnectMenuItem = new JMenuItem("Reconnect", KeyEvent.VK_R);
+		reconnectMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R,
+				ActionEvent.CTRL_MASK));
+		reconnectMenuItem.setToolTipText("Reconnect to server");
+		reconnectMenuItem.addActionListener(new ActionListener() {
 
-            @Override
-            public Component getFirstComponent(Container aContainer) {
-                return output;
-            }
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				reconnect();
+			}
+		});
 
-            @Override
-            public Component getLastComponent(Container aContainer) {
-                return quitButton;
-            }
+		JMenuItem disconnectMenuItem = new JMenuItem("Diconnect", KeyEvent.VK_D);
+		disconnectMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D,
+				ActionEvent.CTRL_MASK));
+		disconnectMenuItem.setToolTipText("Disconnect from server");
+		disconnectMenuItem.addActionListener(new ActionListener() {
 
-            @Override
-            public Component getDefaultComponent(Container aContainer) {
-                return commandField;
-            }
-        });
-        try {
-            String helpMsg = this.getRequestResponse("help");
-            List<String> serverCommands = this.parseServerCommands(helpMsg);
-            CommandsUtils.addServerCommand(serverCommands);
-        } catch (IOException ex) {
-            String message = "Can not retrieve server commands";
-            this.warning(String.format("%s: %s%n", message, ex.getMessage()));
-            LOGGER.warn(message, ex);
-        }
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				socket.close();
+				setDisconnected();
+			}
+		});
 
-        this.fine(String
-            .format("Connection succeed! Welcome on Nemolovich Minecraft RCON Administration%n"));
+		fileMenu.add(reconnectMenuItem);
+		fileMenu.add(disconnectMenuItem);
+		fileMenu.add(new JSeparator());
+		fileMenu.add(quitMenuItem);
 
-    }
+		menuBar.add(fileMenu);
 
-    private List<String> parseServerCommands(String msg) {
-        String content = parseColorString(msg);
-        List<String> commands = getBasicCommands(content);
-        commands.addAll(getCustomCommands(content));
-        return commands;
-    }
+		this.setJMenuBar(menuBar);
 
-    private static String parseColorString(String msg) {
-        return msg.replaceAll("\u00A7(\\d|[a-f])", "");
-    }
+		initComponents();
 
-    private List<String> getBasicCommands(String msg) {
-        return getBasicCommands(msg, false);
-    }
+		setFocusTraversalPolicy(new FocusTraversalPolicy() {
 
-    private List<String> getBasicCommands(String msg, boolean skipPagination) {
-        List<String> commands = new ArrayList();
-        Matcher matcher = SERVER_BASIC_COMMAND_PATTERN.matcher(msg);
+			@Override
+			public Component getComponentAfter(Container aContainer,
+					Component aComponent) {
 
-        while (matcher.find()) {
-            commands.add(matcher.group("cmd"));
-        }
-        if (!skipPagination) {
-            Matcher multiPage = SERVER_COMMAND_PAGES_PATTERN.matcher(msg
-                .replaceAll("\\n", "\\\\n"));
-            if (multiPage.matches()) {
-                int nbPages = Integer.valueOf(multiPage.group("nbPages"));
-                if (nbPages > 1) {
-                    for (int i = 2; i <= nbPages; i++) {
-                        commands.addAll(getBasicCommands(
-                            parseColorString(getNextHelp(i)), true));
-                    }
-                }
-            }
-        }
-        return commands;
-    }
+				Component result = null;
+				if (aComponent.equals(output)) {
+					result = copyButton;
+				} else if (aComponent.equals(commandField)) {
+					result = copyButton;
+				} else if (aComponent.equals(copyButton)) {
+					result = clearButton;
+				} else if (aComponent.equals(clearButton)) {
+					result = playersButton;
+				} else if (aComponent.equals(playersButton)) {
+					result = saveButton;
+				} else if (aComponent.equals(saveButton)) {
+					result = stopButton;
+				} else if (aComponent.equals(stopButton)) {
+					result = quitButton;
+				} else if (aComponent.equals(quitButton)) {
+					result = output;
+				}
+				return result;
+			}
 
-    private String getNextHelp(int index) {
-        String result = null;
-        try {
-            result = this.getRequestResponse(String.format("help %d", index));
-        } catch (IOException ex) {
-            LOGGER.error(String.format("Can not retrieve help #%d", index), ex);
-        }
-        return result;
-    }
+			@Override
+			public Component getComponentBefore(Container aContainer,
+					Component aComponent) {
+				Component result = null;
+				if (aComponent.equals(output)) {
+					result = quitButton;
+				} else if (aComponent.equals(commandField)) {
+					result = output;
+				} else if (aComponent.equals(copyButton)) {
+					result = output;
+				} else if (aComponent.equals(clearButton)) {
+					result = copyButton;
+				} else if (aComponent.equals(playersButton)) {
+					result = clearButton;
+				} else if (aComponent.equals(saveButton)) {
+					result = playersButton;
+				} else if (aComponent.equals(stopButton)) {
+					result = saveButton;
+				} else if (aComponent.equals(quitButton)) {
+					result = stopButton;
+				}
+				return result;
+			}
 
-    private List<String> getCustomCommands(String msg) {
-        List<String> commands = new ArrayList();
-        Matcher matcher = SERVER_CUSTOM_COMMAND_PATTERN.matcher(msg);
+			@Override
+			public Component getFirstComponent(Container aContainer) {
+				return output;
+			}
 
-        while (matcher.find()) {
-            commands.add(matcher.group("cmd"));
-        }
-        return commands;
-    }
+			@Override
+			public Component getLastComponent(Container aContainer) {
+				return quitButton;
+			}
 
-    /**
-     * This method is called from within the constructor to initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is always
-     * regenerated by the Form Editor.
-     */
-    @SuppressWarnings("unchecked")
+			@Override
+			public Component getDefaultComponent(Container aContainer) {
+				return commandField;
+			}
+		});
+		try {
+			String helpMsg = this.getRequestResponse("help");
+			List<String> serverCommands = this.parseServerCommands(helpMsg);
+			CommandsUtils.addServerCommand(serverCommands);
+		} catch (IOException ex) {
+			String message = "Can not retrieve server commands";
+			this.warning(String.format("%s: %s%n", message, ex.getMessage()));
+			LOGGER.warn(message, ex);
+		}
+
+		this.fine(String
+				.format("Connection succeed! Welcome on Nemolovich Minecraft RCON Administration%n"));
+
+	}
+
+	private List<String> parseServerCommands(String msg) {
+		String content = parseColorString(msg);
+		List<String> commands = getBasicCommands(content);
+		commands.addAll(getCustomCommands(content));
+		return commands;
+	}
+
+	private static String parseColorString(String msg) {
+		return msg.replaceAll("\u00A7(\\d|[a-f])", "");
+	}
+
+	private List<String> getBasicCommands(String msg) {
+		return getBasicCommands(msg, false);
+	}
+
+	private List<String> getBasicCommands(String msg, boolean skipPagination) {
+		List<String> commands = new ArrayList();
+		Matcher matcher = SERVER_BASIC_COMMAND_PATTERN.matcher(msg);
+
+		while (matcher.find()) {
+			commands.add(matcher.group("cmd"));
+		}
+		if (!skipPagination) {
+			Matcher multiPage = SERVER_COMMAND_PAGES_PATTERN.matcher(msg
+					.replaceAll("\\n", "\\\\n"));
+			if (multiPage.matches()) {
+				int nbPages = Integer.valueOf(multiPage.group("nbPages"));
+				if (nbPages > 1) {
+					for (int i = 2; i <= nbPages; i++) {
+						commands.addAll(getBasicCommands(
+								parseColorString(getNextHelp(i)), true));
+					}
+				}
+			}
+		}
+		return commands;
+	}
+
+	private String getHelp(String command) {
+		String result = null;
+		try {
+			result = this.getRequestResponse(String.format("help %d", command));
+		} catch (IOException ex) {
+			LOGGER.error(String.format("Can not retrieve help for command ",
+					command), ex);
+		}
+		return result;
+	}
+
+	private String getNextHelp(int index) {
+		String result = null;
+		try {
+			result = this.getRequestResponse(String.format("help %d", index));
+		} catch (IOException ex) {
+			LOGGER.error(String.format("Can not retrieve help #%d", index), ex);
+		}
+		return result;
+	}
+
+	private List<String> getCustomCommands(String msg) {
+		List<String> commands = new ArrayList();
+		Matcher matcher = SERVER_CUSTOM_COMMAND_PATTERN.matcher(msg);
+
+		while (matcher.find()) {
+			commands.add(matcher.group("cmd"));
+		}
+		return commands;
+	}
+
+	/**
+	 * This method is called from within the constructor to initialize the form.
+	 * WARNING: Do NOT modify this code. The content of this method is always
+	 * regenerated by the Form Editor.
+	 */
+	@SuppressWarnings("unchecked")
 	// <editor-fold defaultstate="collapsed"
 	// desc="Generated Code">//GEN-BEGIN:initComponents
 	private void initComponents() {
@@ -568,266 +658,316 @@ public class MainFrame extends javax.swing.JFrame {
 		setLocationRelativeTo(null);
 	}// </editor-fold>//GEN-END:initComponents
 
-    public void close() {
-        this.socket.close();
-        this.exit(true);
-    }
+	public void close() {
+		this.close(true);
+	}
 
-    private void fine(String msg) {
-        this.write(msg, Level.FINE);
-    }
+	public void close(boolean exit) {
+		this.socket.close();
+		if (exit) {
+			this.exit(true);
+		}
+	}
 
-    private void info(String msg) {
-        this.write(msg, Level.INFO);
-    }
+	private void fine(String msg) {
+		this.write(msg, Level.FINE);
+	}
 
-    private void warning(String msg) {
-        this.write(msg, Level.WARNING);
-    }
+	private void info(String msg) {
+		this.write(msg, Level.INFO);
+	}
 
-    private void error(String msg) {
-        this.write(msg, Level.ERROR);
-    }
+	private void warning(String msg) {
+		this.write(msg, Level.WARNING);
+	}
 
-    private void write(String message, Level level) {
+	private void error(String msg) {
+		this.write(msg, Level.ERROR);
+	}
 
-        Style style;
-        switch (level) {
-            case INFO:
-                style = DEFAULT_STYLE;
-                break;
-            case FINE:
-                style = FINE_STYLE;
-                break;
-            case WARNING:
-                style = WARNING_STYLE;
-                break;
-            case ERROR:
-                style = ERROR_STYLE;
-                break;
-            default:
-                style = DEFAULT_STYLE;
-                break;
-        }
+	private void write(String message, Level level) {
 
-        try {
-            if (!message.startsWith("/")
-                & message
-                .contains(MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX)) {
-                String[] parts = message
-                    .split(MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX);
-                for (String part : parts) {
-                    if (!part.isEmpty()) {
-                        MinecraftColors color = MinecraftColorsUtil
-                            .getColorFromCode(part.charAt(0));
-                        Style colorStyle = style;
-                        if (color != null) {
-                            Style mcStyle = sc.getStyle(color.getName()
-                                .toUpperCase().concat("_STYLE"));
-                            if (mcStyle != null) {
-                                colorStyle = mcStyle;
-                            }
-                        }
-                        this.output.getDocument().insertString(
-                            this.output.getDocument().getLength(),
-                            part.substring(1), colorStyle);
-                    }
-                }
-                this.output.getDocument().insertString(
-                    this.output.getDocument().getLength(),
-                    String.format("%n"), style);
-            } else {
-                this.output.getDocument().insertString(
-                    this.output.getDocument().getLength(), message, style);
-            }
-            this.output.setCaretPosition(this.output.getDocument().getLength());
-        } catch (BadLocationException ex) {
-            LOGGER.error("GUI Log error", ex);
-        }
+		Style style;
+		switch (level) {
+		case INFO:
+			style = DEFAULT_STYLE;
+			break;
+		case FINE:
+			style = FINE_STYLE;
+			break;
+		case WARNING:
+			style = WARNING_STYLE;
+			break;
+		case ERROR:
+			style = ERROR_STYLE;
+			break;
+		default:
+			style = DEFAULT_STYLE;
+			break;
+		}
 
-    }
+		try {
+			if (!message.startsWith("/")
+					& message
+							.contains(MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX)) {
+				String[] parts = message
+						.split(MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX);
+				for (String part : parts) {
+					if (!part.isEmpty()) {
+						MinecraftColors color = MinecraftColorsUtil
+								.getColorFromCode(part.charAt(0));
+						Style colorStyle = style;
+						if (color != null) {
+							Style mcStyle = sc.getStyle(color.getName()
+									.toUpperCase().concat("_STYLE"));
+							if (mcStyle != null) {
+								colorStyle = mcStyle;
+							}
+						}
+						this.output.getDocument().insertString(
+								this.output.getDocument().getLength(),
+								part.substring(1), colorStyle);
+					}
+				}
+				this.output.getDocument().insertString(
+						this.output.getDocument().getLength(),
+						String.format("%n"), style);
+			} else {
+				this.output.getDocument().insertString(
+						this.output.getDocument().getLength(), message, style);
+			}
+			this.output.setCaretPosition(this.output.getDocument().getLength());
+		} catch (BadLocationException ex) {
+			LOGGER.error("GUI Log error", ex);
+		}
 
-    public final void exit() {
-        exit(false);
-    }
+	}
 
-    public final void exit(boolean forced) {
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setVisible(false);
-        this.dispose();
-        if (forced) {
-            System.exit(0);
-        }
-    }
+	public final void exit() {
+		exit(false);
+	}
 
-    private void quitButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_quitButtonActionPerformed
-        if (this.quitAskAction()) {
-            exit(true);
-        }
-    }// GEN-LAST:event_quitButtonActionPerformed
+	public final void exit(boolean forced) {
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		this.setVisible(false);
+		this.dispose();
+		if (forced) {
+			System.exit(0);
+		}
+	}
 
-    private void copyButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_copyButtonActionPerformed
-        String selection = this.output.getText();
-        if (selection != null && !selection.isEmpty()) {
-            Clipboard clipboard = Toolkit.getDefaultToolkit()
-                .getSystemClipboard();
-            clipboard.setContents(new StringSelection(selection), null);
-        }
-    }// GEN-LAST:event_copyButtonActionPerformed
+	private void quitButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_quitButtonActionPerformed
+		if (this.quitAskAction()) {
+			close();
+		}
+	}// GEN-LAST:event_quitButtonActionPerformed
 
-    private void clearButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_clearButtonActionPerformed
-        this.clearConsole();
-    }// GEN-LAST:event_clearButtonActionPerformed
+	private void copyButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_copyButtonActionPerformed
+		String selection = this.output.getText();
+		if (selection != null && !selection.isEmpty()) {
+			Clipboard clipboard = Toolkit.getDefaultToolkit()
+					.getSystemClipboard();
+			clipboard.setContents(new StringSelection(selection), null);
+		}
+	}// GEN-LAST:event_copyButtonActionPerformed
 
-    private void playersButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_playersButtonActionPerformed
-        try {
-            this.fine(String.format("Players list:%n"));
-            this.info(this.getRequestResponse("list"));
-        } catch (IOException ex) {
-            String error = "Can not retrieve players list";
-            LOGGER.error(error, ex);
-            this.error(String.format("%s%n", error));
-        }
-    }// GEN-LAST:event_playersButtonActionPerformed
+	private void clearButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_clearButtonActionPerformed
+		this.clearConsole();
+	}// GEN-LAST:event_clearButtonActionPerformed
 
-    private void stopButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_stopButtonActionPerformed
-        if (JOptionPane.showConfirmDialog(this,
-            "Do you really want to stop the server?",
-            "Stop the server? :o", JOptionPane.OK_CANCEL_OPTION,
-            JOptionPane.QUESTION_MESSAGE) == JOptionPane.OK_OPTION) {
-            try {
-                this.error(String.format("Stop server:%n"));
-                this.info(this.getRequestResponse("stop"));
-            } catch (IOException ex) {
-                String error = "Can not stop the server";
-                LOGGER.error(error, ex);
-                this.error(String.format("%s%n", error));
-            }
-        }
-    }// GEN-LAST:event_stopButtonActionPerformed
+	private void playersButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_playersButtonActionPerformed
+		try {
+			this.fine(String.format("Players list:%n"));
+			this.info(this.getRequestResponse("list"));
+		} catch (IOException ex) {
+			String error = "Can not retrieve players list";
+			LOGGER.error(error, ex);
+			this.error(String.format("%s%n", error));
+		}
+	}// GEN-LAST:event_playersButtonActionPerformed
 
-    private void saveButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_saveButtonActionPerformed
-        try {
-            this.warning(String.format("Save world:%n"));
-            this.info(this.getRequestResponse("save-all"));
-        } catch (IOException ex) {
-            String error = "Can not save the world";
-            LOGGER.error(error, ex);
-            this.error(String.format("%s%n", error));
-        }
-    }// GEN-LAST:event_saveButtonActionPerformed
+	private void stopButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_stopButtonActionPerformed
+		if (JOptionPane.showConfirmDialog(this,
+				"Do you really want to stop the server?",
+				"Stop the server? :o", JOptionPane.OK_CANCEL_OPTION,
+				JOptionPane.QUESTION_MESSAGE) == JOptionPane.OK_OPTION) {
+			try {
+				this.error(String.format("Stop server:%n"));
+				this.info(this.getRequestResponse("stop"));
+			} catch (IOException ex) {
+				String error = "Can not stop the server";
+				LOGGER.error(error, ex);
+				this.error(String.format("%s%n", error));
+			}
+		}
+	}// GEN-LAST:event_stopButtonActionPerformed
 
-    private void clearConsole() {
-        this.output.setText("");
-    }
+	private void saveButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_saveButtonActionPerformed
+		try {
+			this.warning(String.format("Save world:%n"));
+			this.info(this.getRequestResponse("save-all"));
+		} catch (IOException ex) {
+			String error = "Can not save the world";
+			LOGGER.error(error, ex);
+			this.error(String.format("%s%n", error));
+		}
+	}// GEN-LAST:event_saveButtonActionPerformed
 
-    private void commandFieldActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_commandFieldActionPerformed
-        String command = this.commandField.getText();
-        String[] args = command.split(" ");
-        String commandName = args[0];
-        args = Arrays.copyOfRange(args, 1, args.length);
-        this.info(String.format("%s%n", command));
-        this.commandField.setText("");
-        if (!command.isEmpty()) {
-            if (CommandsUtils.getInternalCommands().contains(commandName)) {
-                Command c = CommandsUtils.getInternalCommand(commandName);
-                c.doCommand(args);
-            } else if (commandName.equals("/help")
-                && args.length > 0
-                && CommandsUtils.getInternalCommands().contains(
-                    String.format("/%s", args[0]))) {
-                this.info(String.format("%s%n", CommandsUtils
-                    .getInternalCommandHelp(String.format("/%s", args[0]))));
-            } else {
-                try {
-                    this.info(String.format("%s",
-                        this.getRequestResponse(command.substring(1))));
-                } catch (IOException ex) {
-                    String errorMessage = String.format(
-                        "Communication error: %s%n", ex.getMessage());
-                    this.error(errorMessage);
-                    LOGGER.error(errorMessage, ex);
-                }
-            }
-            this.commandHistory.add(command);
-            this.currentHistoryIndex = this.commandHistory.size();
-        }
-    }// GEN-LAST:event_commandFieldActionPerformed
+	private void clearConsole() {
+		this.output.setText("");
+	}
 
-    private void commandFieldKeyReleased(java.awt.event.KeyEvent evt) {// GEN-FIRST:event_commandFieldKeyReleased
-        int code = evt.getKeyCode();
-        if (code == KeyEvent.VK_TAB) {
-            this.suggest();
-        } else if (code == KeyEvent.VK_DOWN) {
-            this.selectNextCommand();
-        } else if (code == KeyEvent.VK_UP) {
-            this.selectPreviousCommand();
-        } else {
-            if (this.currentHistoryIndex >= this.commandHistory.size()) {
-                this.currentLine = this.commandField.getText();
-            }
-        }
-    }// GEN-LAST:event_commandFieldKeyReleased
+	private void commandFieldActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_commandFieldActionPerformed
+		String command = this.commandField.getText();
+		String[] args = command.split(" ");
+		String commandName = args[0];
+		args = Arrays.copyOfRange(args, 1, args.length);
+		this.info(String.format("%s%n", command));
+		this.commandField.setText("");
+		if (!command.isEmpty()) {
+			if (CommandsUtils.getInternalCommands().contains(commandName)) {
+				Command c = CommandsUtils.getInternalCommand(commandName);
+				c.doCommand(args);
+			} else if (commandName.equals("/help")
+					&& args.length > 0
+					&& CommandsUtils.getInternalCommands().contains(
+							String.format("/%s", args[0]))) {
+				this.info(String.format("%s%n", CommandsUtils
+						.getInternalCommandHelp(String.format("/%s", args[0]))));
+			} else {
+				try {
+					this.info(String.format("%s",
+							this.getRequestResponse(command.substring(1))));
+				} catch (IOException ex) {
+					String errorMessage = String.format(
+							"Communication error: %s%n", ex.getMessage());
+					this.error(errorMessage);
+					LOGGER.error(errorMessage, ex);
+				}
+			}
+			this.commandHistory.add(command);
+			this.currentHistoryIndex = this.commandHistory.size();
+		}
+	}// GEN-LAST:event_commandFieldActionPerformed
 
-    private void selectPreviousCommand() {
-        if (this.currentHistoryIndex >= 1 && this.commandHistory.size() > 0) {
-            this.currentHistoryIndex--;
-            this.commandField.setText(this.commandHistory
-                .get(this.currentHistoryIndex));
-        }
-    }
+	private void commandFieldKeyReleased(java.awt.event.KeyEvent evt) {// GEN-FIRST:event_commandFieldKeyReleased
+		int code = evt.getKeyCode();
+		if (code == KeyEvent.VK_TAB) {
+			this.suggest();
+		} else if (code == KeyEvent.VK_DOWN) {
+			this.selectNextCommand();
+		} else if (code == KeyEvent.VK_UP) {
+			this.selectPreviousCommand();
+		} else {
+			if (this.currentHistoryIndex >= this.commandHistory.size()) {
+				this.currentLine = this.commandField.getText();
+			}
+		}
+	}// GEN-LAST:event_commandFieldKeyReleased
 
-    private void selectNextCommand() {
-        if (this.currentHistoryIndex > -1
-            && this.currentHistoryIndex + 1 < this.commandHistory.size()) {
-            this.currentHistoryIndex++;
-            this.commandField.setText(this.commandHistory
-                .get(this.currentHistoryIndex));
-        } else {
-            this.commandField.setText(this.currentLine);
-            this.currentHistoryIndex = this.commandHistory.size();
-        }
-    }
+	private void selectPreviousCommand() {
+		if (this.currentHistoryIndex >= 1 && this.commandHistory.size() > 0) {
+			this.currentHistoryIndex--;
+			this.commandField.setText(this.commandHistory
+					.get(this.currentHistoryIndex));
+		}
+	}
 
-    private void suggest() {
-        String line = this.commandField.getText();
-        List<String> suggestions = new ArrayList();
+	private void selectNextCommand() {
+		if (this.currentHistoryIndex > -1
+				&& this.currentHistoryIndex + 1 < this.commandHistory.size()) {
+			this.currentHistoryIndex++;
+			this.commandField.setText(this.commandHistory
+					.get(this.currentHistoryIndex));
+		} else {
+			this.commandField.setText(this.currentLine);
+			this.currentHistoryIndex = this.commandHistory.size();
+		}
+	}
 
-        List<String> availableCommands = CommandsUtils.getAvailableCommands();
-        for (String cmd : availableCommands) {
-            if (cmd.startsWith(line)) {
-                suggestions.add(String.format("%s ", cmd));
-            }
-        }
-        if (suggestions.size() == 1) {
-            String text = suggestions.get(0);
-            if (text.startsWith("/")) {
-                this.commandField.setText(text);
-            } else {
-                this.commandField.setText(String.format("/help %s", text));
-            }
-        } else if (suggestions.size() > 1
-            && suggestions.size() < availableCommands.size()) {
-            StringBuilder display = new StringBuilder();
-            display.append(String.format("Available commmands (%d/%d):%n",
-                suggestions.size(), availableCommands.size()));
-            for (String cmd : suggestions) {
-                display.append(String.format("\t%s%n", cmd));
-            }
-            this.info(display.toString());
-        }
-    }
+	private void suggest() {
+		String line = this.commandField.getText();
+		List<String> suggestions = new ArrayList();
 
-    private String getRequestResponse(String request) throws IOException {
-        int requestId = this.socket.sendRequest(request);
-        return this.socket.readResponse(requestId);
-    }
+		List<String> availableCommands = CommandsUtils.getAvailableCommands();
+		for (String cmd : availableCommands) {
+			if (cmd.startsWith(line)) {
+				suggestions.add(String.format("%s ", cmd));
+			} else if (line.startsWith("/help ")) {
+				String hLine = line.substring("/help ".length());
+				if (cmd.substring(1).startsWith(hLine)) {
+					suggestions.add(String.format("%s", cmd.substring(1)));
+				}
+			}
+		}
+		if (suggestions.size() == 1) {
+			String text = suggestions.get(0);
+			if (text.startsWith("/")) {
+				this.commandField.setText(text);
+			} else {
+				this.commandField.setText(String.format("/help %s ", text));
+			}
+		} else if (suggestions.size() > 1
+				&& suggestions.size() < availableCommands.size()) {
+			StringBuilder display = new StringBuilder();
+			display.append(String.format("Available commmands (%d/%d):%n",
+					suggestions.size(), availableCommands.size()));
+			for (String cmd : suggestions) {
+				display.append(String.format("\t%s%n", cmd));
+			}
+			this.info(display.toString());
+		}
+	}
 
-    private boolean quitAskAction() {
-        return JOptionPane.showConfirmDialog(this,
-            "Do you really want to leave?", "Leave client? oO?",
-            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION;
-    }
+	private String getRequestResponse(String request) throws IOException {
+		String result = null;
+		try {
+			int requestId = this.socket.sendRequest(request);
+			result = this.socket.readResponse(requestId);
+		} catch (IOException se) {
+			if (se instanceof SocketException) {
+				this.setDisconnected();
+			}
+			throw se;
+		}
+		return result;
+	}
+
+	private void reconnect() {
+		LOGGER.info("Trying to reconnect to the socket");
+		try {
+			this.socket = new ClientSocket(this.host, this.port, this.password);
+			this.fine(String
+					.format("Connection succeed! Welcome on Nemolovich Minecraft RCON Administration%n"));
+		} catch (ConnectionException | AuthenticationException e) {
+			this.error(String.format("Can not reconnect to server%n"));
+		}
+		this.setConnected();
+	}
+
+	private void setDisconnected() {
+		this.warning(String.format("Disconnected from server%n"));
+		this.setState(false);
+	}
+
+	private void setConnected() {
+		this.setState(true);
+	}
+
+	private void setState(boolean action) {
+		if (this.socket.isClosed() ^ action) {
+			this.connected = action;
+			this.playersButton.setEnabled(action);
+			this.saveButton.setEnabled(action);
+			this.stopButton.setEnabled(action);
+		}
+	}
+
+	private boolean quitAskAction() {
+		return JOptionPane.showConfirmDialog(this,
+				"Do you really want to leave?", "Leave client? oO?",
+				JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION;
+	}
 
 	// Variables declaration - do not modify//GEN-BEGIN:variables
 	private javax.swing.JButton clearButton;

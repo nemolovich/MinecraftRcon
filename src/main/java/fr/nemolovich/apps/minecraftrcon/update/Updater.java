@@ -28,12 +28,12 @@ public abstract class Updater {
 
         int i = 0;
         for (String arg : executable) {
-            this.args[i++] = arg;
+            this.args[i++] = String.format("\"%s\"", arg);
         }
         this.args[i++] = oldJar;
         this.args[i++] = newJar;
         for (String arg : optArgs) {
-            this.args[i++] = arg;
+            this.args[i++] = String.format("\"%s\"", arg);;
         }
     }
 

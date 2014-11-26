@@ -5,12 +5,15 @@
  */
 package fr.nemolovich.apps.minecraftrcon;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.junit.Test;
 
 /**
@@ -20,11 +23,13 @@ import org.junit.Test;
 public class TestPattern {
 
     private static final Pattern SERVER_BASIC_COMMAND_PATTERN = Pattern
-        .compile("\n(?<cmd>//w+(-/w+)*):/s");
+        .compile("\n(?<cmd>/\\w+(-\\w+)*):\\s");
     private static final Pattern SERVER_COMMAND_PAGES_PATTERN = Pattern
-        .compile("^.*-{7,}/s.+:/s/(/d+/(?<nbPages>/d+)/)/s-{7,}.*");
+        .compile("-{7,}\\s.+:\\s.+\\s\\(\\d+/(?<nbPages>\\d+)\\)\\s-{7,}.*");
     private static final Pattern SERVER_CUSTOM_COMMAND_PATTERN = Pattern
-        .compile("\n(?<cmd>/w+(-/w+)*):/s");
+        .compile("\n(?<cmd>\\w+(-\\w+)*):\\s");
+    
+    
     private static final String HELP_MSG_1 = "\u00A7e--------- \u00A7fHelp: Index (1/6) \u00A7e---------------------\n"
         + "\u00A77A?>;L795B5 /help [=><5@ AB@0=8FK] GB>1K ?5@5<5I0BLAO?>\n"
         + "\u00A77AB@0=8F0<.\n"
@@ -98,7 +103,7 @@ public class TestPattern {
 
     @Test
     public void test1() throws FileNotFoundException, IOException {
-//        assertTrue(parseServerCommands(HELP_MSG_1).size() > 0);
+        assertTrue(parseServerCommands(HELP_MSG_1).size() > 0);
     }
 
     private List<String> parseServerCommands(String msg) {
@@ -109,7 +114,7 @@ public class TestPattern {
     }
 
     private static String parseColorString(String msg) {
-        return msg.replaceAll("\u00A7(/d|[a-f])", "");
+        return msg.replaceAll("\u00A7(\\d|[a-f])", "");
     }
 
     private List<String> getBasicCommands(String msg) {
@@ -125,7 +130,7 @@ public class TestPattern {
         }
         if (!skipPagination) {
             Matcher multiPage = SERVER_COMMAND_PAGES_PATTERN.matcher(msg
-                .replaceAll("/n", "//n"));
+                .replaceAll("\\n", "\\\\n"));
             if (multiPage.matches()) {
                 int nbPages = Integer.valueOf(multiPage.group("nbPages"));
                 if (nbPages > 1) {
