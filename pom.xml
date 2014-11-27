@@ -3,10 +3,12 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.nemolovich.apps.minecraftrcon</groupId>
     <artifactId>MinecraftRcon</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
     <name>Minecraft RCON</name>
-    <description>Minecraft RCON administration</description>
     <packaging>jar</packaging>
+    
+    <description>Minecraft RCON administration
+    		0.0.4: Fixed SwingWorker to parallelize server request action</description>
   
     <dependencies>
         <dependency>
