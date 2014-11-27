@@ -50,6 +50,8 @@ public class Launcher {
     private static final String REMOTE_DOWNLOAD = "https://rawgit.com/nemolovich/MinecraftRcon/master/downloads/";
 
     private static final String APP_NAME = "MinecraftRcon";
+    
+    private static final String RUN_FILE_PREFIX="runFile=";
 
     /**
      * @param args
@@ -69,20 +71,26 @@ public class Launcher {
         // return;
         // }
         // }
+        
+        args=new String[1];
+        args[0]=RUN_FILE_PREFIX.concat(" ");
+        
         final String[] dst = new String[args.length];
         System.arraycopy(args, 0, dst, 0, args.length);
-        if (args.length > 0) {
+        if (args.length < 1 || !args[0].startsWith(RUN_FILE_PREFIX) ||
+            args[0].length()<=RUN_FILE_PREFIX.length()) {
+            throw new IllegalArgumentException("Need run file parameter at first");
+        }
 
-            for (String arg : args) {
-                if (arg.equalsIgnoreCase("--update")
-                    || arg.equalsIgnoreCase("-u")) {
-                    checkForUpdates(dst);
-                    return;
-                } else if (arg.equalsIgnoreCase("--version")
-                    || arg.equalsIgnoreCase("-v")) {
-                    System.out.printf("Nemolovich MinecraftRCON version %s%n",
-                        getCurrentVersion());
-                }
+        for (String arg : args) {
+            if (arg.equalsIgnoreCase("--update")
+                || arg.equalsIgnoreCase("-u")) {
+                checkForUpdates(dst);
+                return;
+            } else if (arg.equalsIgnoreCase("--version")
+                || arg.equalsIgnoreCase("-v")) {
+                System.out.printf("Nemolovich MinecraftRCON version %s%n",
+                    getCurrentVersion());
             }
         }
 

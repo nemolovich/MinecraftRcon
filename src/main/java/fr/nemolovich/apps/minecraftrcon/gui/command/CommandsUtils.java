@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  *
@@ -18,23 +20,39 @@ public class CommandsUtils {
 
     private static final List<Command> INTERNAL_COMMANDS;
     private static final List<String> SERVER_COMMANDS;
+    
+    private static final ConcurrentMap<String, String> COMMANDS_HELP;
 
     static {
         INTERNAL_COMMANDS = Collections
             .synchronizedList(new ArrayList<Command>());
         SERVER_COMMANDS = Collections.synchronizedList(new ArrayList<String>());
+        
+        COMMANDS_HELP=new ConcurrentHashMap<>();
+    }
+    
+    public static String getCommandHelp(String command) {
+        return COMMANDS_HELP.get(command);
+    }
+    
+    public static void addCommandHelp(String command, String helpMsg) {
+        COMMANDS_HELP.put(command, helpMsg);
     }
 
     public static void addCommand(Command command) {
         INTERNAL_COMMANDS.add(command);
+        addCommandHelp(command.getCommandName(), command.getHelp());
     }
 
     public static void addServerCommand(String... commands) {
-        SERVER_COMMANDS.addAll(Arrays.asList(commands));
+        addServerCommand(Arrays.asList(commands));
     }
 
     public static void addServerCommand(List<String> commands) {
         SERVER_COMMANDS.addAll(commands);
+        for(String command:commands) {
+            COMMANDS_HELP.put(command, "");
+        }
     }
 
     public static final List<String> getAvailableCommands() {
