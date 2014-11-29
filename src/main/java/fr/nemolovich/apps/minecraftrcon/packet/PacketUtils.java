@@ -6,10 +6,20 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
+/**
+ * Class providing some useful method to work with packets.
+ *
+ * @author Nemolovich
+ */
 public class PacketUtils {
 
     private static int PACKET_ID = 0;
 
+    /**
+     * Return the next increment ID.
+     *
+     * @return {@link Integer int} - The next ID.
+     */
     public static final int getNextId() {
         return ++PACKET_ID;
     }

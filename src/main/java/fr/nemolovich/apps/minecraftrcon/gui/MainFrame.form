@@ -416,7 +416,9 @@
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
                   <Image iconType="3" name="/fr/nemolovich/apps/minecraftrcon/gui/icon/copy.png"/>
                 </Property>
+                <Property name="mnemonic" type="int" value="67"/>
                 <Property name="text" type="java.lang.String" value="Copy"/>
+                <Property name="toolTipText" type="java.lang.String" value="Copy the output content in your clipboard"/>
               </Properties>
               <Events>
                 <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="copyItemActionPerformed"/>
@@ -472,6 +474,7 @@
                 </Property>
                 <Property name="mnemonic" type="int" value="79"/>
                 <Property name="text" type="java.lang.String" value="Commands list"/>
+                <Property name="toolTipText" type="java.lang.String" value="Display the available commands"/>
               </Properties>
               <Events>
                 <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="commandsListItemActionPerformed"/>
@@ -509,6 +512,7 @@
                 </Property>
                 <Property name="mnemonic" type="int" value="84"/>
                 <Property name="text" type="java.lang.String" value="Stop the server"/>
+                <Property name="toolTipText" type="java.lang.String" value="Send a request to stop the server"/>
               </Properties>
               <Events>
                 <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="stopItemActionPerformed"/>
@@ -553,6 +557,7 @@
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
                   <Image iconType="3" name="/fr/nemolovich/apps/minecraftrcon/gui/icon/about.png"/>
                 </Property>
+                <Property name="mnemonic" type="int" value="66"/>
                 <Property name="text" type="java.lang.String" value="About..."/>
                 <Property name="toolTipText" type="java.lang.String" value="Display information about application"/>
               </Properties>

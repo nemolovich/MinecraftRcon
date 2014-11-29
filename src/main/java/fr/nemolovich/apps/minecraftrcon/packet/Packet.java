@@ -2,26 +2,47 @@ package fr.nemolovich.apps.minecraftrcon.packet;
 
 import java.io.UnsupportedEncodingException;
 
+/**
+ * The packet class defines the packet sent/received by the Minecraft server on
+ * RCON protocol.
+ *
+ * @author Nemolovich
+ */
 public class Packet {
 
     private int id;
     private int cmd;
-    private byte data[] = new byte[1024];
+    private byte data[] = new byte[PacketConstants.MAX_DATA_SIZE];
 
+    /**
+     * Build the packet with specific ID.
+     *
+     * @param id {@link Integer int} - The packet ID.
+     */
     public Packet(int id) {
         this.id = id;
     }
 
+    /**
+     * Build a packet.
+     */
     public Packet() {
         this(PacketUtils.getNextId());
         this.cmd = 0;
     }
 
+    /**
+     * Build a packet with ID, type and message to send.
+     *
+     * @param id {@link Integer int} - The packet ID.
+     * @param type {@link PacketType} - The type of the packet.
+     * @param msg {@link String} - The message to send.
+     */
     public Packet(int id, PacketType type, String msg) {
         this(id);
         this.cmd = type.value();
         try {
-            this.data = msg.getBytes("ASCII");
+            this.data = msg.getBytes("UTF8");
         } catch (UnsupportedEncodingException e) {
             System.err.println("ENCODING ERROR");
         }

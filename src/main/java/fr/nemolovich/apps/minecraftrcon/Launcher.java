@@ -50,8 +50,8 @@ public class Launcher {
     private static final String REMOTE_DOWNLOAD = "https://rawgit.com/nemolovich/MinecraftRcon/master/downloads/";
 
     private static final String APP_NAME = "MinecraftRcon";
-    
-    private static final String RUN_FILE_PREFIX="runFile=";
+
+    private static final String RUN_FILE_PREFIX = "runFile=";
 
     /**
      * @param args
@@ -71,16 +71,19 @@ public class Launcher {
         // return;
         // }
         // }
-        
-        args=new String[1];
-        args[0]=RUN_FILE_PREFIX.concat(" ");
-        
+        if (args.length < 1 || !args[0].startsWith(RUN_FILE_PREFIX)
+            || args[0].length() <= RUN_FILE_PREFIX.length()) {
+            // Launch from IDE?
+            if (Launcher.class.getResource("Launcher.class")
+                .getProtocol().equals("file")) {
+                args = new String[1];
+                args[0] = RUN_FILE_PREFIX.concat("IDE");
+            } else {
+                throw new IllegalArgumentException("Need run file parameter at first");
+            }
+        }
         final String[] dst = new String[args.length];
         System.arraycopy(args, 0, dst, 0, args.length);
-        if (args.length < 1 || !args[0].startsWith(RUN_FILE_PREFIX) ||
-            args[0].length()<=RUN_FILE_PREFIX.length()) {
-            throw new IllegalArgumentException("Need run file parameter at first");
-        }
 
         for (String arg : args) {
             if (arg.equalsIgnoreCase("--update")
@@ -229,6 +232,11 @@ public class Launcher {
             Attributes attrs = manifest.getMainAttributes();
 
             result = attrs.getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+            if (result == null
+                && Launcher.class.getResource("Launcher.class")
+                .getProtocol().equals("file")) {
+                result = "IDE_VERSION";
+            }
         } catch (IOException ex) {
             LOGGER.error("Can not find application version", ex);
             result = "Unknown";
