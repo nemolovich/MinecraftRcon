@@ -3,12 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.nemolovich.apps.minecraftrcon</groupId>
     <artifactId>MinecraftRcon</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
     <name>Minecraft RCON</name>
     <packaging>jar</packaging>
     
     <description>Minecraft RCON administration
-    		0.0.4: Fixed SwingWorker to parallelize server request action</description>
+    		0.0.4: Fixed SwingWorker to parallelize server request action
+    		0.0.5:  * Added ping to check if socket still connected
+                        * Disconnect status when error</description>
   
     <dependencies>
         <dependency>
@@ -26,6 +28,11 @@
             <artifactId>junit</artifactId>
             <version>4.11</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jdesktop</groupId>
+            <artifactId>beansbinding</artifactId>
+            <version>1.2.1</version>
         </dependency>
     </dependencies>
     <properties>

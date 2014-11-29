@@ -15,5 +15,8 @@ public class ConnectionException extends Exception {
         super(String.format(
             "Can not access to host '%s' on port '%d'", host, port), ex);
     }
+    public ConnectionException(String message) {
+        super("The connection has been cancelled");
+    }
 
 }

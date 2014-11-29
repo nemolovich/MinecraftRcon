@@ -5,7 +5,6 @@
  */
 package fr.nemolovich.apps.minecraftrcon.gui;
 
-import fr.nemolovich.apps.minecraftrcon.ClientSocket;
 import fr.nemolovich.apps.minecraftrcon.Launcher;
 import fr.nemolovich.apps.minecraftrcon.exceptions.AuthenticationException;
 import fr.nemolovich.apps.minecraftrcon.exceptions.BrowserException;
@@ -18,6 +17,8 @@ import fr.nemolovich.apps.minecraftrcon.gui.command.CommandsUtils;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CommandListSelectionListener;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CommandsTableModel;
 import fr.nemolovich.apps.minecraftrcon.gui.utils.LinkLabel;
+import fr.nemolovich.apps.minecraftrcon.socket.ClientSocket;
+import fr.nemolovich.apps.minecraftrcon.socket.PingThread;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
@@ -45,6 +46,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
@@ -115,6 +117,22 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     /*
+     * Fonts
+     */
+    private static final Font MIRIAM_FONT_NORMAL_BOLD
+        = new Font("Miriam Fixed", Font.BOLD, 14);
+    private static final Font MIRIAM_FONT_NORMAL
+        = new Font("Miriam Fixed", Font.PLAIN, 14);
+    private static final Font MIRIAM_FONT_SMALL_BOLD
+        = new Font("Miriam Fixed", Font.BOLD, 12);
+    private static final Font MIRIAM_FONT_SMALL
+        = new Font("Miriam Fixed", Font.PLAIN, 12);
+    private static final Font MIRIAM_FONT_TINY_BOLD
+        = new Font("Miriam Fixed", Font.BOLD, 11);
+    private static final Font MIRIAM_FONT_TINY
+        = new Font("Miriam Fixed", Font.PLAIN, 11);
+
+    /*
      * App variables
      */
     private ClientSocket socket;
@@ -135,20 +153,35 @@ public class MainFrame extends javax.swing.JFrame {
      * @param port {@link Integer int} - The host port.
      * @param password {@link  String} - The authentication password.
      * @param args {@link String}[] - The optional parameters.
-     * @throws AuthenticationException If the authentication failed.
-     * @throws ConnectionException If the host is not available.
      */
-    public MainFrame(String host, int port, String password, String... args)
-        throws ConnectionException, AuthenticationException {
+    public MainFrame(final String host, final int port, final String password,
+        String... args) {
+        Thread.currentThread().setName("Mainframe-Thread");
         this.host = host;
         this.port = port;
         this.password = password;
         this.args = args;
-        this.socket = new ClientSocket(host, port, password);
-
         this.commandHistory = Collections
             .synchronizedList(new ArrayList<String>());
         this.currentHistoryIndex = -1;
+
+        try {
+            setIconImage(Toolkit.getDefaultToolkit().getImage(
+                MainFrame.class.getResource(RESOURCES_PATH
+                    .concat(FRAME_ICON))));
+        } catch (Exception e) {
+            LOGGER.warn("Can not load icon", e);
+        }
+
+        this.addWindowListener(new WindowAdapter() {
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (quitAskAction()) {
+                    exit();
+                }
+            }
+        });
 
         CommandsUtils
             .addCommand(new CommandAdapter("/cls", "Clear the console") {
@@ -193,35 +226,59 @@ public class MainFrame extends javax.swing.JFrame {
                 }
             });
 
-        try {
-            setIconImage(Toolkit.getDefaultToolkit().getImage(
-                MainFrame.class.getResource(RESOURCES_PATH
-                    .concat(FRAME_ICON))));
-        } catch (Exception e) {
-            LOGGER.warn("Can not load icon", e);
-        }
-
-        this.addWindowListener(new WindowAdapter() {
-
-            @Override
-            public void windowClosing(WindowEvent e) {
-                if (quitAskAction()) {
-                    exit();
-                }
-            }
-        });
-
         this.initComponents();
-
-        this.setConnected();
 
         this.customInitComponents();
 
-        this.initServerComponents();
+        this.setVisible(true);
+    }
 
-        this.fine(String
-            .format("Connection succeed! Welcome on Nemolovich Minecraft RCON Administration%n"));
+    public synchronized void attemptConnect()
+        throws ConnectionException, AuthenticationException {
+        new SwingWorker() {
+            @Override
+            protected Object doInBackground() throws Exception {
+                Thread.currentThread().setName("Connection-Thread");
+                informationHostLabel.setText(host);
+                setDisconnectedStatus();
+                informationProgress.setVisible(true);
+                connectionStatus.setVisible(false);
+                try {
+                    socket = new ClientSocket(host, port, password);
+                } catch (ConnectionException | AuthenticationException ex) {
+                    catchException(ex);
+                    return null;
+                }
+                if (socket != null) {
+                    try {
+                        initServerComponents();
+                        setConnected();
+                        fine(String
+                            .format("Connection succeed! Welcome on Nemolovich Minecraft RCON Administration%n"));
 
+                        PingThread.getInstance().setSocket(socket);
+                        PingThread.getInstance().setDelay(2000);
+                        PingThread.getInstance().setFailAction(new SwingWorker() {
+
+                            @Override
+                            protected Object doInBackground() throws Exception {
+                                error(String.format(
+                                    "The connection seems to be lost%n"));
+                                socket.close();
+                                setDisconnected();
+                                return null;
+                            }
+                        });
+                        PingThread.getInstance().enable();
+                    } catch (Exception e) {
+                        catchException(e);
+                    }
+                }
+                informationProgress.setVisible(false);
+                connectionStatus.setVisible(true);
+                return null;
+            }
+        }.execute();
     }
 
     private List<String> parseServerCommands(String msg) {
@@ -232,7 +289,7 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     private static String parseColorString(String msg) {
-        return msg.replaceAll("\u00A7(\\d|[a-f])", "");
+        return msg != null ? msg.replaceAll("\u00A7(\\d|[a-f])", "") : "";
     }
 
     private List<String> getBasicCommands(String msg) {
@@ -268,7 +325,7 @@ public class MainFrame extends javax.swing.JFrame {
         try {
             result = this.getRequestResponse(String.format("help %s", command));
         } catch (IOException ex) {
-            LOGGER.error(String.format("Can not retrieve help for command ",
+            LOGGER.error(String.format("Can not retrieve help for command %s",
                 command), ex);
         }
         return result;
@@ -457,6 +514,11 @@ public class MainFrame extends javax.swing.JFrame {
         playersButton = new javax.swing.JButton();
         saveButton = new javax.swing.JButton();
         stopButton = new javax.swing.JButton();
+        informationPanel = new javax.swing.JPanel();
+        informationLabel = new javax.swing.JLabel();
+        informationHostLabel = new javax.swing.JLabel();
+        informationProgress = new javax.swing.JProgressBar();
+        connectionStatus = new javax.swing.JLabel();
         menuBar = new javax.swing.JMenuBar();
         fileMenu = new javax.swing.JMenu();
         reconnectItem = new javax.swing.JMenuItem();
@@ -679,11 +741,11 @@ public class MainFrame extends javax.swing.JFrame {
         output.setEditable(false);
         output.setBackground(new java.awt.Color(51, 51, 51));
         output.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-        output.setFont(new java.awt.Font("Miriam Fixed", 0, 11)); // NOI18N
+        output.setFont(MIRIAM_FONT_TINY);
         output.setCursor(new java.awt.Cursor(java.awt.Cursor.TEXT_CURSOR));
         outputScroll.setViewportView(output);
 
-        commandField.setFont(new java.awt.Font("Miriam Fixed", 0, 12)); // NOI18N
+        commandField.setFont(MIRIAM_FONT_SMALL);
         commandField.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
         commandField.setFocusTraversalKeysEnabled(false);
         commandField.addActionListener(new java.awt.event.ActionListener() {
@@ -697,7 +759,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        copyButton.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
+        copyButton.setFont(MIRIAM_FONT_NORMAL_BOLD);
         copyButton.setMnemonic('c');
         copyButton.setText("copy");
         copyButton.setToolTipText("Copy the console content");
@@ -710,7 +772,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        clearButton.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
+        clearButton.setFont(MIRIAM_FONT_NORMAL_BOLD);
         clearButton.setMnemonic('l');
         clearButton.setText("clear");
         clearButton.setToolTipText("Clear the console");
@@ -723,7 +785,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        quitButton.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
+        quitButton.setFont(MIRIAM_FONT_NORMAL_BOLD);
         quitButton.setMnemonic('q');
         quitButton.setText("Quit");
         quitButton.setToolTipText("Quit the application");
@@ -736,7 +798,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        playersButton.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
+        playersButton.setFont(MIRIAM_FONT_NORMAL_BOLD);
         playersButton.setMnemonic('p');
         playersButton.setText("players");
         playersButton.setToolTipText("Display the players list");
@@ -750,7 +812,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        saveButton.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
+        saveButton.setFont(MIRIAM_FONT_NORMAL_BOLD);
         saveButton.setMnemonic('s');
         saveButton.setText("save");
         saveButton.setToolTipText("Save the server world");
@@ -764,7 +826,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        stopButton.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
+        stopButton.setFont(MIRIAM_FONT_NORMAL_BOLD);
         stopButton.setMnemonic('t');
         stopButton.setText("stop");
         stopButton.setToolTipText("Stop the server");
@@ -778,10 +840,74 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
+        informationPanel.setMaximumSize(new java.awt.Dimension(513, 27));
+        informationPanel.setMinimumSize(new java.awt.Dimension(513, 27));
+
+        informationLabel.setFont(MIRIAM_FONT_SMALL);
+        informationLabel.setText("Connection to host:");
+        informationLabel.setMaximumSize(new java.awt.Dimension(133, 19));
+        informationLabel.setMinimumSize(new java.awt.Dimension(133, 19));
+        informationLabel.setPreferredSize(new java.awt.Dimension(133, 19));
+
+        informationHostLabel.setFont(MIRIAM_FONT_SMALL_BOLD);
+        informationHostLabel.setText("<host>");
+        informationHostLabel.setMaximumSize(new java.awt.Dimension(50, 19));
+        informationHostLabel.setMinimumSize(new java.awt.Dimension(50, 19));
+        informationHostLabel.setPreferredSize(new java.awt.Dimension(50, 19));
+
+        informationProgress.setFont(MIRIAM_FONT_SMALL);
+        informationProgress.setIndeterminate(true);
+        informationProgress.setMaximumSize(new java.awt.Dimension(100, 19));
+        informationProgress.setMinimumSize(new java.awt.Dimension(100, 19));
+        informationProgress.setPreferredSize(new java.awt.Dimension(100, 19));
+        informationProgress.setString("Pending...");
+        informationProgress.setStringPainted(true);
+        UIManager.put("ProgressBar.selectionForeground", Color.decode("#333333"));
+        UIManager.put("ProgressBar.selectionBackground", Color.decode("#FFFFFF"));
+
+        connectionStatus.setFont(MIRIAM_FONT_SMALL_BOLD);
+        connectionStatus.setForeground(new java.awt.Color(153, 0, 0));
+        connectionStatus.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        connectionStatus.setText("Disconnected");
+        connectionStatus.setMaximumSize(new java.awt.Dimension(100, 19));
+        connectionStatus.setMinimumSize(new java.awt.Dimension(100, 19));
+        connectionStatus.setPreferredSize(new java.awt.Dimension(100, 19));
+        connectionStatus.setVisible(false);
+
+        javax.swing.GroupLayout informationPanelLayout = new javax.swing.GroupLayout(informationPanel);
+        informationPanel.setLayout(informationPanelLayout);
+        informationPanelLayout.setHorizontalGroup(
+            informationPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(informationPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(informationLabel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(informationHostLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(connectionStatus, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, 0)
+                .addComponent(informationProgress, javax.swing.GroupLayout.PREFERRED_SIZE, 194, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(6, 6, 6))
+        );
+        informationPanelLayout.setVerticalGroup(
+            informationPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(informationPanelLayout.createSequentialGroup()
+                .addGap(4, 4, 4)
+                .addGroup(informationPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, informationPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(informationHostLabel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(informationLabel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(connectionStatus, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(informationProgress, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(4, 4, 4))
+        );
+
         fileMenu.setMnemonic('F');
         fileMenu.setText("File");
+        fileMenu.setFont(MIRIAM_FONT_NORMAL_BOLD);
 
         reconnectItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_R, java.awt.event.InputEvent.CTRL_MASK));
+        reconnectItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         reconnectItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/reconnect.png"))); // NOI18N
         reconnectItem.setMnemonic('R');
         reconnectItem.setText("Reconnect");
@@ -794,6 +920,7 @@ public class MainFrame extends javax.swing.JFrame {
         fileMenu.add(reconnectItem);
 
         disconnectItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_D, java.awt.event.InputEvent.CTRL_MASK));
+        disconnectItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         disconnectItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/disconnect.png"))); // NOI18N
         disconnectItem.setMnemonic('D');
         disconnectItem.setText("Disconnect");
@@ -808,6 +935,7 @@ public class MainFrame extends javax.swing.JFrame {
         fileMenu.add(fileSep1);
 
         quitItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, java.awt.event.InputEvent.ALT_MASK));
+        quitItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         quitItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/quit.png"))); // NOI18N
         quitItem.setMnemonic('Q');
         quitItem.setText("Quit");
@@ -823,8 +951,10 @@ public class MainFrame extends javax.swing.JFrame {
 
         editMenu.setMnemonic('E');
         editMenu.setText("Edit");
+        editMenu.setFont(MIRIAM_FONT_NORMAL_BOLD);
 
         copyItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, java.awt.event.InputEvent.CTRL_MASK));
+        copyItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         copyItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/copy.png"))); // NOI18N
         copyItem.setMnemonic('C');
         copyItem.setText("Copy");
@@ -837,6 +967,7 @@ public class MainFrame extends javax.swing.JFrame {
         editMenu.add(copyItem);
 
         clearItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_L, java.awt.event.InputEvent.CTRL_MASK));
+        clearItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         clearItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/clear.png"))); // NOI18N
         clearItem.setMnemonic('L');
         clearItem.setText("Clear");
@@ -852,8 +983,10 @@ public class MainFrame extends javax.swing.JFrame {
 
         commandMenu.setMnemonic('m');
         commandMenu.setText("Commands");
+        commandMenu.setFont(MIRIAM_FONT_NORMAL_BOLD);
 
         playersItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_P, java.awt.event.InputEvent.CTRL_MASK));
+        playersItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         playersItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/plays-list.png"))); // NOI18N
         playersItem.setMnemonic('P');
         playersItem.setText("Players list");
@@ -866,6 +999,7 @@ public class MainFrame extends javax.swing.JFrame {
         commandMenu.add(playersItem);
 
         commandsListItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, java.awt.event.InputEvent.CTRL_MASK));
+        commandsListItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         commandsListItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/commandsList.png"))); // NOI18N
         commandsListItem.setMnemonic('O');
         commandsListItem.setText("Commands list");
@@ -879,6 +1013,7 @@ public class MainFrame extends javax.swing.JFrame {
         commandMenu.add(editSep1);
 
         saveItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_MASK));
+        saveItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         saveItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/world.png"))); // NOI18N
         saveItem.setMnemonic('S');
         saveItem.setText("Save the world");
@@ -891,6 +1026,7 @@ public class MainFrame extends javax.swing.JFrame {
         commandMenu.add(saveItem);
 
         stopItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_T, java.awt.event.InputEvent.CTRL_MASK));
+        stopItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         stopItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/stop.png"))); // NOI18N
         stopItem.setMnemonic('T');
         stopItem.setText("Stop the server");
@@ -907,8 +1043,10 @@ public class MainFrame extends javax.swing.JFrame {
         helpMenu.setMnemonic('H');
         helpMenu.setText("Help");
         helpMenu.setToolTipText("");
+        helpMenu.setFont(MIRIAM_FONT_NORMAL_BOLD);
 
         updatesItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_U, java.awt.event.InputEvent.CTRL_MASK));
+        updatesItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         updatesItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/update.png"))); // NOI18N
         updatesItem.setMnemonic('U');
         updatesItem.setText("Check for updates");
@@ -922,6 +1060,7 @@ public class MainFrame extends javax.swing.JFrame {
         helpMenu.add(helpSep1);
 
         aboutItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, java.awt.event.InputEvent.CTRL_MASK));
+        aboutItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         aboutItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/about.png"))); // NOI18N
         aboutItem.setMnemonic('B');
         aboutItem.setText("About...");
@@ -957,14 +1096,16 @@ public class MainFrame extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(quitButton, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(commandField)
-                    .addComponent(outputScroll, javax.swing.GroupLayout.Alignment.TRAILING))
+                    .addComponent(outputScroll, javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(informationPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGap(4, 4, 4))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(4, 4, 4)
-                .addComponent(outputScroll, javax.swing.GroupLayout.DEFAULT_SIZE, 389, Short.MAX_VALUE)
+                .addComponent(informationPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, 0)
+                .addComponent(outputScroll, javax.swing.GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(commandField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -1213,14 +1354,20 @@ public class MainFrame extends javax.swing.JFrame {
 
     private String getRequestResponse(final String request) throws IOException {
         String result = null;
-        try {
-            int requestId = socket.sendRequest(request);
-            result = socket.readResponse(requestId);
-        } catch (IOException se) {
-            if (se instanceof SocketException) {
-                setDisconnected();
+        if (socket != null) {
+            try {
+                int requestId = socket.sendRequest(request);
+                result = socket.readResponse(requestId);
+            } catch (IOException se) {
+                if (se instanceof SocketException) {
+                    LOGGER.error("Socket error", se);
+                    catchException(se);
+                    setDisconnected();
+                }
+                throw se;
             }
-            throw se;
+        } else {
+            throw new SocketException("The socket is null");
         }
         return result;
     }
@@ -1230,23 +1377,25 @@ public class MainFrame extends javax.swing.JFrame {
         String help = CommandsUtils.getCommandHelp(command);
         if (help == null || help.isEmpty()) {
             help = this.getHelp(command);
-            Matcher multiPage
-                = SERVER_COMMAND_PAGES_PATTERN.matcher(
-                    parseColorString(
-                        help.replaceAll("\\n", "\\\\n")));
-            if (multiPage.matches()) {
-                StringBuilder tmp = new StringBuilder(help);
-                int nbPages = Integer.valueOf(
-                    multiPage.group("nbPages"));
-                if (nbPages > 1) {
-                    for (int i = 2; i <= nbPages; i++) {
-                        tmp.append(getNextHelp(i,
-                            String.format("%s ", command)));
+            if (help != null) {
+                Matcher multiPage
+                    = SERVER_COMMAND_PAGES_PATTERN.matcher(
+                        parseColorString(
+                            help.replaceAll("\\n", "\\\\n")));
+                if (multiPage.matches()) {
+                    StringBuilder tmp = new StringBuilder(help);
+                    int nbPages = Integer.valueOf(
+                        multiPage.group("nbPages"));
+                    if (nbPages > 1) {
+                        for (int i = 2; i <= nbPages; i++) {
+                            tmp.append(getNextHelp(i,
+                                String.format("%s ", command)));
+                        }
                     }
+                    help = tmp.toString();
                 }
-                help = tmp.toString();
+                CommandsUtils.addCommandHelp(command, help);
             }
-            CommandsUtils.addCommandHelp(command, help);
         }
         this.write(help, Level.INFO, commandHelpPane);
         this.commandHelpPane.setCaretPosition(0);
@@ -1284,7 +1433,9 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     public void close() {
-        this.socket.close();
+        if (this.socket != null) {
+            this.socket.close();
+        }
         this.exit(true);
     }
 
@@ -1317,28 +1468,40 @@ public class MainFrame extends javax.swing.JFrame {
     private void reconnectAction() {
         LOGGER.info("Trying to reconnect to the socket");
         try {
-            this.socket = new ClientSocket(this.host, this.port, this.password);
-            this.fine(String
-                .format("Connection succeed! Welcome on Nemolovich Minecraft RCON Administration%n"));
+            this.attemptConnect();
         } catch (ConnectionException | AuthenticationException e) {
             this.error(String.format("Can not reconnect to server%n"));
         }
-        this.initServerComponents();
-        this.setConnected();
+    }
+
+    public void setDisconnectedStatus() {
+        this.connectionStatus.setText("Disconnected");
+        this.connectionStatus.setForeground(Color.decode(
+            MinecraftColorsConstants.DARK_RED_COLOR_FG));
+    }
+
+    public void setConnectedStatus() {
+        this.connectionStatus.setText("Connected");
+        this.connectionStatus.setForeground(Color.decode(
+            MinecraftColorsConstants.DARK_GREEN_COLOR_FG));
     }
 
     private void setDisconnected() {
+        PingThread.getInstance().disable();
+        this.setDisconnectedStatus();
         this.warning(String.format("Disconnected from server%n"));
         this.setState(false);
         this.clear();
     }
 
     private void setConnected() {
+        this.setConnectedStatus();
         this.setState(true);
     }
 
     private void setState(boolean action) {
-        if (this.socket.isClosed() ^ action) {
+        if ((this.socket == null || this.socket != null
+            && this.socket.isClosed()) ^ action) {
             this.playersButton.setEnabled(action);
             this.playersItem.setEnabled(action);
             this.commandsListItem.setEnabled(action);
@@ -1367,6 +1530,7 @@ public class MainFrame extends javax.swing.JFrame {
     private org.jdesktop.swingx.JXTable commandsList;
     private javax.swing.JMenuItem commandsListItem;
     private javax.swing.JScrollPane commandsListScroll;
+    private javax.swing.JLabel connectionStatus;
     private javax.swing.JLabel contactLabel;
     private javax.swing.JLabel contactValue;
     private javax.swing.JButton copyButton;
@@ -1377,6 +1541,10 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JLabel headText;
     private javax.swing.JLabel headerImage;
     private javax.swing.JMenu helpMenu;
+    private javax.swing.JLabel informationHostLabel;
+    private javax.swing.JLabel informationLabel;
+    private javax.swing.JPanel informationPanel;
+    private javax.swing.JProgressBar informationProgress;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JMenuBar menuBar;
     private javax.swing.JTextPane output;
@@ -1396,6 +1564,14 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JLabel versionLabel;
     private javax.swing.JLabel versionValue;
     // End of variables declaration//GEN-END:variables
+
+    public void catchException(Exception ex) {
+        LOGGER.error("Error: " + ex);
+        JXErrorPane.showDialog(
+            this, new ErrorInfo("Error", "Error occured", null, "Error", ex,
+                java.util.logging.Level.SEVERE, null));
+    }
+
     private void fine(final String msg) {
         this.fine(msg, this.output);
     }

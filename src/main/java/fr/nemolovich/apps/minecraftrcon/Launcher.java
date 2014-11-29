@@ -3,6 +3,7 @@ package fr.nemolovich.apps.minecraftrcon;
 import fr.nemolovich.apps.minecraftrcon.exceptions.AuthenticationException;
 import fr.nemolovich.apps.minecraftrcon.exceptions.ConnectionException;
 import fr.nemolovich.apps.minecraftrcon.gui.MainFrame;
+import fr.nemolovich.apps.minecraftrcon.socket.PingThread;
 import fr.nemolovich.apps.minecraftrcon.update.Updater;
 import fr.nemolovich.apps.minecraftrcon.update.WindowsUpdater;
 import java.awt.BorderLayout;
@@ -59,18 +60,8 @@ public class Launcher {
      */
     public static void main(String[] args) throws AuthenticationException {
         BasicConfigurator.configure();
-
-        // if (true) {
-        // try {
-        // doNotUse("MinecraftRcon.db",
-        // "jar:file:/C:/Users/Nemolovich/Desktop/MinecraftRCON/MinecraftRcon.jar!/");
-        // return;
-        // } catch (IOException ex) {
-        // java.util.logging.Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE,
-        // null, ex);
-        // return;
-        // }
-        // }
+        Thread.currentThread().setName("Launcher-Thread");
+        
         if (args.length < 1 || !args[0].startsWith(RUN_FILE_PREFIX)
             || args[0].length() <= RUN_FILE_PREFIX.length()) {
             // Launch from IDE?
@@ -147,9 +138,6 @@ public class Launcher {
         controls.add(passwordField);
         panel.add(controls, BorderLayout.CENTER);
 
-        hostField.setText("raspberry:20066");
-        passwordField.setText("Minecraft2580");
-
         String host;
 
         Matcher matcher = null;
@@ -173,24 +161,18 @@ public class Launcher {
         final int hostPort = Integer.parseInt(matcher.group("port"));
         final String password = new String(passwordField.getPassword());
 
+        PingThread.getInstance().start();
+
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                MainFrame mf = null;
+                MainFrame mf = new MainFrame(hostName, hostPort, password, dst);
                 try {
-                    mf = new MainFrame(hostName, hostPort, password, dst);
-                    mf.setVisible(true);
+                    mf.attemptConnect();
                 } catch (AuthenticationException | ConnectionException e) {
-                    if (mf != null) {
-                        mf.close();
-                    }
-                    JXErrorPane.showDialog(
-                        mf,
-                        new ErrorInfo("Connection error", String.format(
-                                "The connection to host '%s' failed",
-                                hostName), null, "Error", e, Level.SEVERE,
-                            null));
+                    mf.catchException(e);
+                    System.exit(0);
                 }
             }
         });

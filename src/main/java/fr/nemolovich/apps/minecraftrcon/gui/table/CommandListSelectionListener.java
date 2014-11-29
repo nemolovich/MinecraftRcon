@@ -39,6 +39,8 @@ public class CommandListSelectionListener implements ListSelectionListener {
                 selectedRow, 0);
             this.worker.setValue(command);
             this.worker.execute();
+            
+            this.table.scrollRowToVisible(this.table.getSelectedRow());
         }
     }
 }
