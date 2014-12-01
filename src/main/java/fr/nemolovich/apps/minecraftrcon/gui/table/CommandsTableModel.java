@@ -5,7 +5,11 @@
  */
 package fr.nemolovich.apps.minecraftrcon.gui.table;
 
+import java.util.regex.PatternSyntaxException;
+import javax.swing.JTable;
+import javax.swing.RowFilter;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableRowSorter;
 
 /**
  *
@@ -15,6 +19,7 @@ public class CommandsTableModel extends AbstractTableModel {
 
     private Object[][] data;
     private static final String[] TITLES = {"Command name"};
+    private TableRowSorter<CommandsTableModel> sorter;
 
     public CommandsTableModel() {
         this.clear();
@@ -87,8 +92,22 @@ public class CommandsTableModel extends AbstractTableModel {
             indice++;
         }
         this.data = temp;
-        
+
         this.fireTableDataChanged();
+    }
+
+    public final void setTableSorter(JTable table) {
+        TableRowSorter<CommandsTableModel> rowSorter
+            = new TableRowSorter(
+                (CommandsTableModel) table.getModel());
+        table.setRowSorter(rowSorter);
+        this.sorter = rowSorter;
+    }
+
+    public void filter(String filter) throws PatternSyntaxException {
+        RowFilter<CommandsTableModel, Object> rf
+            = RowFilter.regexFilter(filter, 0);
+        this.sorter.setRowFilter(rf);
     }
 
 }

@@ -3,14 +3,16 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.nemolovich.apps.minecraftrcon</groupId>
     <artifactId>MinecraftRcon</artifactId>
-    <version>0.0.5</version>
+    <version>0.0.6</version>
     <name>Minecraft RCON</name>
     <packaging>jar</packaging>
     
     <description>Minecraft RCON administration
     		0.0.4: Fixed SwingWorker to parallelize server request action
     		0.0.5:  * Added ping to check if socket still connected
-                        * Disconnect status when error</description>
+                        * Disconnect status when error
+    		0.0.6:  * Added Commands list filter
+                        * Removed connection pending when error</description>
   
     <dependencies>
         <dependency>

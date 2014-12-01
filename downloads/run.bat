@@ -8,6 +8,8 @@ echo === Nemolovich Minecraft RCON Application ===
 echo =============================================
 echo.
 
+set RUN_FILE=runFile=%~0
+
 set APPLI_HOME=%~dp0
 set PARMS=-Xms64M -Xmx512M
 
@@ -27,7 +29,7 @@ if "%~1"=="--java-home" (
 ) else (
 	if "%~1"=="--debug" (
 		if "%~2" NEQ "" (
-			set PARMS=%PARMS% -Xdebug -Xrunjdwp:transport=dt_socket,server=n,address=%2
+			set PARMS=%PARMS% -Xdebug -Xrunjdwp:transport=dt_socket,server=n,address=%~2
 			echo set Debug on %~2
 			shift
 			shift
@@ -87,8 +89,8 @@ set APPLI_COMMAND=%*
 "%JAVA_HOME%\bin\java.exe" -version
 PATH=%APPLI_HOME%libs;%PATH%
 echo === Trying to start Nemolovich Minecraft RCON Application
-echo === Using: %PARMS% -jar %APPLI_HOME%%APPLI_NAME%.jar %APPLI_COMMAND%
-"%JAVA_HOME%\bin\java.exe" %PARMS% -jar "%APPLI_HOME%%APPLI_NAME%.jar" %APPLI_COMMAND%
+echo === Using: %PARMS% -jar %APPLI_HOME%%APPLI_NAME%.jar %RUN_FILE% %APPLI_COMMAND%
+"%JAVA_HOME%\bin\java.exe" %PARMS% -jar "%APPLI_HOME%%APPLI_NAME%.jar" %RUN_FILE% %APPLI_COMMAND%
 
 GOTO EOF
 :ERROR

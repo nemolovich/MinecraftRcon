@@ -139,7 +139,6 @@ public class Launcher {
         panel.add(controls, BorderLayout.CENTER);
 
         String host;
-
         Matcher matcher = null;
 
         while (matcher == null || !matcher.matches()) {

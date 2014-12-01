@@ -22,7 +22,7 @@ public class CommandListSelectionListener implements ListSelectionListener {
 
     public CommandListSelectionListener(JXTable table, ParallelTask worker) {
         this.table = table;
-        this.worker=worker;
+        this.worker = worker;
     }
 
     @Override
@@ -33,14 +33,16 @@ public class CommandListSelectionListener implements ListSelectionListener {
         ListSelectionModel seletionModel
             = (ListSelectionModel) listSelectionEvent.getSource();
         if (!seletionModel.isSelectionEmpty()) {
-            int selectedRow = this.table.convertRowIndexToView(
+            int selectedRow = this.table.convertRowIndexToModel(
                 seletionModel.getLeadSelectionIndex());
-            String command = (String) this.table.getModel().getValueAt(
-                selectedRow, 0);
-            this.worker.setValue(command);
-            this.worker.execute();
-            
-            this.table.scrollRowToVisible(this.table.getSelectedRow());
+            if (selectedRow > -1) {
+                String command = (String) this.table.getModel().getValueAt(
+                    selectedRow, 0);
+                this.worker.setValue(command);
+                this.worker.execute();
+
+                this.table.scrollRowToVisible(this.table.getSelectedRow());
+            }
         }
     }
 }

@@ -16,7 +16,8 @@ public class PingThread extends Thread {
 
     private static final Logger LOGGER = Logger.getLogger(PingThread.class);
 
-    private static final int DEFAULT_DELAY = 1000;
+    public static final int DEFAULT_DELAY = 30000;
+    private static final int WAIT_DELAY = 60000;
     private static final PingThread INSTANCE;
 
     private int delay;
@@ -54,7 +55,7 @@ public class PingThread extends Thread {
                 while (this.threadSuspended) {
                     synchronized (this) {
                         LOGGER.info("Wait");
-                        this.wait(10000);
+                        this.wait(WAIT_DELAY);
                     }
                 }
                 if (this.socket != null) {
