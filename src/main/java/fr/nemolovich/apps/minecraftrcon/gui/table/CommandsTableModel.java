@@ -5,109 +5,24 @@
  */
 package fr.nemolovich.apps.minecraftrcon.gui.table;
 
-import java.util.regex.PatternSyntaxException;
-import javax.swing.JTable;
-import javax.swing.RowFilter;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableRowSorter;
-
 /**
  *
  * @author Nemolovich
  */
-public class CommandsTableModel extends AbstractTableModel {
+public class CommandsTableModel extends CustomTableModel {
 
-    private Object[][] data;
     private static final String[] TITLES = {"Command name"};
-    private TableRowSorter<CommandsTableModel> sorter;
 
     public CommandsTableModel() {
+        super(TITLES);
         this.clear();
     }
 
-    @Override
-    public int getRowCount() {
-        return this.data.length;
+    public void addCommand(String command) {
+        String[] row=new String[1];
+        row[0]=command;
+        super.addRow(row);
     }
 
-    @Override
-    public int getColumnCount() {
-        return TITLES.length;
-    }
-
-    @Override
-    public String getColumnName(int column) {
-        return TITLES[column];
-    }
-
-    @Override
-    public Object getValueAt(int rowIndex, int columnIndex) {
-        return this.data[rowIndex][0];
-    }
-
-    @Override
-    public Class<?> getColumnClass(int columnIndex) {
-        return String.class;
-    }
-
-    @Override
-    public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return false;
-    }
-
-    public final void clear() {
-        this.data = new Object[0][0];
-    }
-
-    public final void addRow(String command) {
-        int indice = 0;
-        int nbRow = this.getRowCount();
-        int nbCol = this.getColumnCount();
-
-        Object temp[][] = this.data;
-        this.data = new Object[nbRow + 1][nbCol];
-
-        for (Object[] value : temp) {
-            this.data[indice++] = value;
-        }
-
-        Object[] newLine = new Object[1];
-        newLine[0] = command;
-        this.data[indice] = newLine;
-
-        this.fireTableDataChanged();
-    }
-
-    public final void removeRow(int rowIndex) {
-        int indice = 0;
-        int newDataIndex = 0;
-        int nbRow = this.getRowCount();
-        int nbCol = this.getColumnCount();
-        Object temp[][] = new Object[nbRow - 1][nbCol];
-
-        for (Object[] value : this.data) {
-            if (indice != rowIndex) {
-                temp[newDataIndex++] = value;
-            }
-            indice++;
-        }
-        this.data = temp;
-
-        this.fireTableDataChanged();
-    }
-
-    public final void setTableSorter(JTable table) {
-        TableRowSorter<CommandsTableModel> rowSorter
-            = new TableRowSorter(
-                (CommandsTableModel) table.getModel());
-        table.setRowSorter(rowSorter);
-        this.sorter = rowSorter;
-    }
-
-    public void filter(String filter) throws PatternSyntaxException {
-        RowFilter<CommandsTableModel, Object> rf
-            = RowFilter.regexFilter(filter, 0);
-        this.sorter.setRowFilter(rf);
-    }
 
 }

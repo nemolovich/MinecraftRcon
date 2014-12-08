@@ -16,6 +16,7 @@ import fr.nemolovich.apps.minecraftrcon.gui.command.Command;
 import fr.nemolovich.apps.minecraftrcon.gui.command.CommandsUtils;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CommandListSelectionListener;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CommandsTableModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.ITableModel;
 import fr.nemolovich.apps.minecraftrcon.gui.utils.LinkLabel;
 import fr.nemolovich.apps.minecraftrcon.socket.ClientSocket;
 import fr.nemolovich.apps.minecraftrcon.socket.PingThread;
@@ -154,6 +155,7 @@ public class MainFrame extends javax.swing.JFrame {
     private final String password;
 
     private final Border fieldBorder;
+    private final Color fieldColor;
 
     /**
      * Creates new form MainFrame.
@@ -241,13 +243,13 @@ public class MainFrame extends javax.swing.JFrame {
 
         this.setVisible(true);
         this.fieldBorder = this.commandFilterField.getBorder();
+        this.fieldColor = this.commandFilterField.getForeground();
     }
 
     public synchronized void attemptConnect()
         throws ConnectionException, AuthenticationException {
         this.setHostText(this.host);
-        this.setState(false);
-        this.clear();
+        this.setDisconnected();
         this.setInProgress();
         new SwingWorker() {
             @Override
@@ -256,6 +258,7 @@ public class MainFrame extends javax.swing.JFrame {
                 try {
                     socket = new ClientSocket(host, port, password);
                 } catch (ConnectionException | AuthenticationException ex) {
+                    error(String.format("Connection failed%n"));
                     setDisconnected();
                     catchException(ex);
                     return null;
@@ -282,6 +285,7 @@ public class MainFrame extends javax.swing.JFrame {
                         });
                         PingThread.getInstance().enable();
                     } catch (Exception e) {
+                        error(String.format("Connection failed%n"));
                         setDisconnected();
                         catchException(e);
                     }
@@ -385,7 +389,7 @@ public class MainFrame extends javax.swing.JFrame {
         }
 
         for (String command : CommandsUtils.getAvailableCommands()) {
-            ((CommandsTableModel) this.commandsList.getModel()).addRow(command);
+            ((CommandsTableModel) this.commandsList.getModel()).addCommand(command);
         }
 
         ListSelectionModel listSelectionModel = this.commandsList
@@ -483,13 +487,13 @@ public class MainFrame extends javax.swing.JFrame {
 
         aboutFrame = new javax.swing.JDialog(this);
         headerImage = new javax.swing.JLabel();
-        headText = new javax.swing.JLabel();
-        versionLabel = new javax.swing.JLabel();
+        javax.swing.JLabel headText = new javax.swing.JLabel();
+        javax.swing.JLabel versionLabel = new javax.swing.JLabel();
         versionValue = new javax.swing.JLabel();
         closeAboutFrame = new javax.swing.JButton();
-        contactLabel = new javax.swing.JLabel();
+        javax.swing.JLabel contactLabel = new javax.swing.JLabel();
         contactValue = new LinkLabel("mailto:nemolovich.apps@outlook.com");
-        sourcesLabel = new javax.swing.JLabel();
+        javax.swing.JLabel sourcesLabel = new javax.swing.JLabel();
         sourcesValue = new LinkLabel("http://github.com/nemolovich/MinecraftRcon");
         commandsFrame = new javax.swing.JDialog(this);
         availableCommandsLabel = new javax.swing.JLabel();
@@ -512,7 +516,7 @@ public class MainFrame extends javax.swing.JFrame {
         ;
         commandHelpScroll = new javax.swing.JScrollPane();
         commandHelpPane = new javax.swing.JTextPane();
-        jLabel1 = new javax.swing.JLabel();
+        commandHelpLabel = new javax.swing.JLabel();
         closeCommandsList = new javax.swing.JButton();
         commandFilterField = new javax.swing.JTextField();
         commandFilterLabel = new javax.swing.JLabel();
@@ -541,7 +545,10 @@ public class MainFrame extends javax.swing.JFrame {
         copyItem = new javax.swing.JMenuItem();
         clearItem = new javax.swing.JMenuItem();
         commandMenu = new javax.swing.JMenu();
+        playersMenu = new javax.swing.JMenu();
         playersItem = new javax.swing.JMenuItem();
+        whiteListItem = new javax.swing.JMenuItem();
+        banListItem = new javax.swing.JMenuItem();
         commandsListItem = new javax.swing.JMenuItem();
         javax.swing.JPopupMenu.Separator editSep1 = new javax.swing.JPopupMenu.Separator();
         saveItem = new javax.swing.JMenuItem();
@@ -558,18 +565,18 @@ public class MainFrame extends javax.swing.JFrame {
 
         headerImage.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/background_400x78.png"))); // NOI18N
 
-        headText.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
+        headText.setFont(MIRIAM_FONT_NORMAL_BOLD);
         headText.setText("Nemolovich Minecraft RCON administration");
         headText.setToolTipText("");
 
-        versionLabel.setFont(new java.awt.Font("Miriam Fixed", 0, 14)); // NOI18N
+        versionLabel.setFont(MIRIAM_FONT_NORMAL);
         versionLabel.setText("Version:");
 
-        versionValue.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
+        versionValue.setFont(MIRIAM_FONT_NORMAL_BOLD);
         versionValue.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         versionValue.setText(Launcher.getCurrentVersion());
 
-        closeAboutFrame.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
+        closeAboutFrame.setFont(MIRIAM_FONT_NORMAL_BOLD);
         closeAboutFrame.setText("Close");
         closeAboutFrame.setMaximumSize(new java.awt.Dimension(97, 26));
         closeAboutFrame.setMinimumSize(new java.awt.Dimension(97, 26));
@@ -580,7 +587,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        contactLabel.setFont(new java.awt.Font("Miriam Fixed", 0, 14)); // NOI18N
+        contactLabel.setFont(MIRIAM_FONT_NORMAL);
         contactLabel.setText("Contact:");
 
         contactValue.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -591,7 +598,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        sourcesLabel.setFont(new java.awt.Font("Miriam Fixed", 0, 14)); // NOI18N
+        sourcesLabel.setFont(MIRIAM_FONT_NORMAL);
         sourcesLabel.setText("Sources:");
 
         sourcesValue.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -607,24 +614,25 @@ public class MainFrame extends javax.swing.JFrame {
         aboutFrameLayout.setHorizontalGroup(
             aboutFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(headerImage, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, aboutFrameLayout.createSequentialGroup()
-                .addGap(291, 291, 291)
-                .addComponent(closeAboutFrame, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
             .addGroup(aboutFrameLayout.createSequentialGroup()
-                .addContainerGap()
                 .addGroup(aboutFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(headText, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, aboutFrameLayout.createSequentialGroup()
+                        .addGap(291, 291, 291)
+                        .addComponent(closeAboutFrame, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                     .addGroup(aboutFrameLayout.createSequentialGroup()
+                        .addContainerGap()
                         .addGroup(aboutFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(versionLabel)
-                            .addComponent(contactLabel)
-                            .addComponent(sourcesLabel))
-                        .addGap(18, 18, 18)
-                        .addGroup(aboutFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(contactValue, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(sourcesValue, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(versionValue, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
+                            .addComponent(headText, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addGroup(aboutFrameLayout.createSequentialGroup()
+                                .addGroup(aboutFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(versionLabel)
+                                    .addComponent(contactLabel)
+                                    .addComponent(sourcesLabel))
+                                .addGap(18, 18, 18)
+                                .addGroup(aboutFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(contactValue, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addComponent(sourcesValue, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addComponent(versionValue, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))))
                 .addContainerGap())
         );
         aboutFrameLayout.setVerticalGroup(
@@ -658,7 +666,7 @@ public class MainFrame extends javax.swing.JFrame {
         commandsFrame.setModal(true);
         commandsFrame.setType(java.awt.Window.Type.POPUP);
 
-        availableCommandsLabel.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
+        availableCommandsLabel.setFont(MIRIAM_FONT_NORMAL_BOLD);
         availableCommandsLabel.setText("List of server available commands:");
 
         commandsListScroll.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -670,14 +678,14 @@ public class MainFrame extends javax.swing.JFrame {
         commandsList.setAutoStartEditOnKeyStroke(false);
         commandsList.setAutoscrolls(false);
         commandsList.setEditable(false);
-        commandsList.setFont(new java.awt.Font("Miriam Fixed", 0, 12)); // NOI18N
+        commandsList.setFont(MIRIAM_FONT_SMALL);
         commandsList.setRowSelectionAllowed(false);
         commandsList.getTableHeader().setResizingAllowed(false);
         commandsList.getTableHeader().setReorderingAllowed(false);
-        commandsList.getTableHeader().setFont(new java.awt.Font("Miriam Fixed", Font.BOLD, 14));
-        commandsList.getRowSorter().toggleSortOrder(0);
+        commandsList.getTableHeader().setFont(MIRIAM_FONT_NORMAL_BOLD);
         commandsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        ((CommandsTableModel)commandsList.getModel()).setTableSorter(commandsList);
+        ((ITableModel)commandsList.getModel()).setTableSorter(commandsList);
+        commandsList.getRowSorter().toggleSortOrder(0);
         commandsListScroll.setViewportView(commandsList);
 
         commandHelpScroll.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -692,11 +700,16 @@ public class MainFrame extends javax.swing.JFrame {
         commandHelpPane.setCursor(new java.awt.Cursor(java.awt.Cursor.TEXT_CURSOR));
         commandHelpScroll.setViewportView(commandHelpPane);
 
-        jLabel1.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
-        jLabel1.setText("Command help:");
+        commandHelpLabel.setFont(MIRIAM_FONT_NORMAL_BOLD);
+        commandHelpLabel.setText("Command help:");
 
-        closeCommandsList.setFont(new java.awt.Font("Miriam Fixed", 1, 14)); // NOI18N
+        closeCommandsList.setFont(MIRIAM_FONT_NORMAL_BOLD);
+        closeCommandsList.setMnemonic('C');
         closeCommandsList.setText("Close");
+        closeCommandsList.setToolTipText("Close frame");
+        closeCommandsList.setMaximumSize(new java.awt.Dimension(97, 26));
+        closeCommandsList.setMinimumSize(new java.awt.Dimension(97, 26));
+        closeCommandsList.setPreferredSize(new java.awt.Dimension(97, 26));
         closeCommandsList.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 closeCommandsListActionPerformed(evt);
@@ -704,19 +717,27 @@ public class MainFrame extends javax.swing.JFrame {
         });
 
         commandFilterField.setFont(MIRIAM_FONT_SMALL);
+        commandFilterField.setToolTipText("Filter the commands list (Regular expressions can be used)");
+        commandFilterField.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
         commandFilterField.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 commandFilterFieldActionPerformed(evt);
             }
         });
         commandFilterField.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                commandFilterFieldKeyReleased(evt);
+            }
             public void keyTyped(java.awt.event.KeyEvent evt) {
                 commandFilterFieldKeyTyped(evt);
             }
         });
 
+        commandFilterLabel.setDisplayedMnemonic('F');
         commandFilterLabel.setFont(MIRIAM_FONT_SMALL_BOLD);
+        commandFilterLabel.setLabelFor(commandFilterField);
         commandFilterLabel.setText("Filter:");
+        commandFilterLabel.setToolTipText("");
 
         commandListClearFilterButton.setBackground(new java.awt.Color(255, 255, 255));
         commandListClearFilterButton.setFont(new java.awt.Font("Dialog", 1, 10)); // NOI18N
@@ -739,23 +760,20 @@ public class MainFrame extends javax.swing.JFrame {
             .addGroup(commandsFrameLayout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(commandsFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(commandHelpLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(commandHelpScroll, javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(commandsListScroll)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, commandsFrameLayout.createSequentialGroup()
                         .addGap(0, 0, Short.MAX_VALUE)
-                        .addComponent(closeCommandsList))
-                    .addGroup(commandsFrameLayout.createSequentialGroup()
-                        .addGroup(commandsFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel1)
-                            .addComponent(availableCommandsLabel))
-                        .addGap(0, 168, Short.MAX_VALUE))
+                        .addComponent(closeCommandsList, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(commandsFrameLayout.createSequentialGroup()
                         .addGap(12, 12, 12)
                         .addComponent(commandFilterLabel)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(commandFilterField)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(commandListClearFilterButton, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(commandListClearFilterButton, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(availableCommandsLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE))
                 .addContainerGap())
         );
         commandsFrameLayout.setVerticalGroup(
@@ -764,18 +782,19 @@ public class MainFrame extends javax.swing.JFrame {
                 .addContainerGap()
                 .addComponent(availableCommandsLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(commandsFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(commandFilterField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(commandFilterLabel)
-                    .addComponent(commandListClearFilterButton, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGroup(commandsFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(commandListClearFilterButton, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(commandsFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(commandFilterField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(commandFilterLabel)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(commandsListScroll, javax.swing.GroupLayout.PREFERRED_SIZE, 156, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel1)
+                .addComponent(commandHelpLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(commandHelpScroll, javax.swing.GroupLayout.DEFAULT_SIZE, 184, Short.MAX_VALUE)
+                .addComponent(commandHelpScroll, javax.swing.GroupLayout.DEFAULT_SIZE, 181, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(closeCommandsList)
+                .addComponent(closeCommandsList, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
 
@@ -910,6 +929,7 @@ public class MainFrame extends javax.swing.JFrame {
         informationHostLabel.setPreferredSize(new java.awt.Dimension(50, 19));
 
         informationProgress.setFont(MIRIAM_FONT_SMALL);
+        informationProgress.setForeground(new java.awt.Color(51, 51, 51));
         informationProgress.setIndeterminate(true);
         informationProgress.setMaximumSize(new java.awt.Dimension(100, 19));
         informationProgress.setMinimumSize(new java.awt.Dimension(100, 19));
@@ -1039,6 +1059,12 @@ public class MainFrame extends javax.swing.JFrame {
         commandMenu.setText("Commands");
         commandMenu.setFont(MIRIAM_FONT_NORMAL_BOLD);
 
+        playersMenu.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/players.png"))); // NOI18N
+        playersMenu.setMnemonic('Y');
+        playersMenu.setText("Players...");
+        playersMenu.setToolTipText("Players actions...");
+        playersMenu.setFont(MIRIAM_FONT_SMALL_BOLD);
+
         playersItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_P, java.awt.event.InputEvent.CTRL_MASK));
         playersItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         playersItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/plays-list.png"))); // NOI18N
@@ -1050,7 +1076,33 @@ public class MainFrame extends javax.swing.JFrame {
                 playersItemActionPerformed(evt);
             }
         });
-        commandMenu.add(playersItem);
+        playersMenu.add(playersItem);
+
+        whiteListItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_W, java.awt.event.InputEvent.CTRL_MASK));
+        whiteListItem.setFont(MIRIAM_FONT_SMALL_BOLD);
+        whiteListItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/white_list.png"))); // NOI18N
+        whiteListItem.setMnemonic('W');
+        whiteListItem.setText("White-list");
+        whiteListItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                whiteListItemActionPerformed(evt);
+            }
+        });
+        playersMenu.add(whiteListItem);
+
+        banListItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_B, java.awt.event.InputEvent.CTRL_MASK));
+        banListItem.setFont(MIRIAM_FONT_SMALL_BOLD);
+        banListItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/ban_list.png"))); // NOI18N
+        banListItem.setMnemonic('B');
+        banListItem.setText("Ban-list");
+        banListItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                banListItemActionPerformed(evt);
+            }
+        });
+        playersMenu.add(banListItem);
+
+        commandMenu.add(playersMenu);
 
         commandsListItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, java.awt.event.InputEvent.CTRL_MASK));
         commandsListItem.setFont(MIRIAM_FONT_SMALL_BOLD);
@@ -1113,7 +1165,7 @@ public class MainFrame extends javax.swing.JFrame {
         helpMenu.add(updatesItem);
         helpMenu.add(helpSep1);
 
-        aboutItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, java.awt.event.InputEvent.CTRL_MASK));
+        aboutItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_COMMA, java.awt.event.InputEvent.CTRL_MASK));
         aboutItem.setFont(MIRIAM_FONT_SMALL_BOLD);
         aboutItem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/about.png"))); // NOI18N
         aboutItem.setMnemonic('B');
@@ -1179,9 +1231,13 @@ public class MainFrame extends javax.swing.JFrame {
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void commandFilterFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_commandFilterFieldActionPerformed
-        this.filterCommandTable();
-    }//GEN-LAST:event_commandFilterFieldActionPerformed
+    private void banListItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_banListItemActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_banListItemActionPerformed
+
+    private void whiteListItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_whiteListItemActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_whiteListItemActionPerformed
 
     private void commandListClearFilterButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_commandListClearFilterButtonActionPerformed
         this.clearCommandTableFilter();
@@ -1191,13 +1247,21 @@ public class MainFrame extends javax.swing.JFrame {
         this.filterCommandTable();
     }//GEN-LAST:event_commandFilterFieldKeyTyped
 
+    private void commandFilterFieldKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_commandFilterFieldKeyReleased
+        this.filterCommandTable();
+    }//GEN-LAST:event_commandFilterFieldKeyReleased
+
+    private void commandFilterFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_commandFilterFieldActionPerformed
+        this.filterCommandTable();
+    }//GEN-LAST:event_commandFilterFieldActionPerformed
+
+    private void closeCommandsListActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeCommandsListActionPerformed
+        this.commandsFrame.setVisible(false);
+    }//GEN-LAST:event_closeCommandsListActionPerformed
+
     private void commandsListItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_commandsListItemActionPerformed
         this.commandsFrame.setVisible(true);
     }// GEN-LAST:event_commandsListItemActionPerformed
-
-    private void closeCommandsListActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_closeCommandsListActionPerformed
-        this.commandsFrame.setVisible(false);
-    }// GEN-LAST:event_closeCommandsListActionPerformed
 
     private void reconnectItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_reconnectItemActionPerformed
         this.reconnectAction();
@@ -1434,6 +1498,7 @@ public class MainFrame extends javax.swing.JFrame {
                 if (se instanceof SocketException) {
                     LOGGER.error("Socket error", se);
                     catchException(se);
+                    error(String.format("Connection lost%n"));
                     setDisconnected();
                 }
                 throw se;
@@ -1528,6 +1593,7 @@ public class MainFrame extends javax.swing.JFrame {
 
     private void filterCommandTable() {
         this.commandFilterField.setBorder(this.fieldBorder);
+        this.commandFilterField.setForeground(this.fieldColor);
         try {
             ((CommandsTableModel) this.commandsList.getModel()).filter(
                 this.commandFilterField.getText());
@@ -1535,12 +1601,15 @@ public class MainFrame extends javax.swing.JFrame {
             LOGGER.error("Wrong regex pattern", ex);
             this.commandFilterField.setBorder(
                 javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED,
-                    Color.decode("#CC3333"), Color.decode("#CC9999")));
+                    Color.decode("#CC0000"), Color.decode("#CC9999")));
+            this.commandFilterField.setForeground(Color.decode("#CC0000"));
         }
     }
 
     private void clearCommandTableFilter() {
         this.commandFilterField.setText("");
+        this.commandFilterField.setBorder(this.fieldBorder);
+        this.commandFilterField.setForeground(this.fieldColor);
         ((CommandsTableModel) this.commandsList.getModel()).filter("");
         this.commandsList.scrollRowToVisible(this.commandsList.getSelectedRow());
     }
@@ -1554,6 +1623,7 @@ public class MainFrame extends javax.swing.JFrame {
     public void disconnectAction() {
         socket.close();
         setDisconnected();
+        this.warning(String.format("Disconnected from server%n"));
     }
 
     private void reconnectAction() {
@@ -1593,7 +1663,6 @@ public class MainFrame extends javax.swing.JFrame {
     private void setDisconnected() {
         PingThread.getInstance().disable();
         this.setDisconnectedStatus();
-        this.warning(String.format("Disconnected from server%n"));
         this.setState(false);
         this.clear();
     }
@@ -1607,7 +1676,10 @@ public class MainFrame extends javax.swing.JFrame {
         if ((this.socket == null || this.socket != null
             && this.socket.isClosed()) ^ action) {
             this.playersButton.setEnabled(action);
+            this.playersMenu.setEnabled(action);
             this.playersItem.setEnabled(action);
+            this.banListItem.setEnabled(action);
+            this.whiteListItem.setEnabled(action);
             this.commandsListItem.setEnabled(action);
             this.saveButton.setEnabled(action);
             this.saveItem.setEnabled(action);
@@ -1622,6 +1694,7 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JDialog aboutFrame;
     private javax.swing.JMenuItem aboutItem;
     private javax.swing.JLabel availableCommandsLabel;
+    private javax.swing.JMenuItem banListItem;
     private javax.swing.JButton clearButton;
     private javax.swing.JMenuItem clearItem;
     private javax.swing.JButton closeAboutFrame;
@@ -1629,6 +1702,7 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JTextField commandField;
     private javax.swing.JTextField commandFilterField;
     private javax.swing.JLabel commandFilterLabel;
+    private javax.swing.JLabel commandHelpLabel;
     private javax.swing.JTextPane commandHelpPane;
     private javax.swing.JScrollPane commandHelpScroll;
     private javax.swing.JButton commandListClearFilterButton;
@@ -1638,38 +1712,35 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JMenuItem commandsListItem;
     private javax.swing.JScrollPane commandsListScroll;
     private javax.swing.JLabel connectionStatus;
-    private javax.swing.JLabel contactLabel;
     private javax.swing.JLabel contactValue;
     private javax.swing.JButton copyButton;
     private javax.swing.JMenuItem copyItem;
     private javax.swing.JMenuItem disconnectItem;
     private javax.swing.JMenu editMenu;
     private javax.swing.JMenu fileMenu;
-    private javax.swing.JLabel headText;
     private javax.swing.JLabel headerImage;
     private javax.swing.JMenu helpMenu;
     private javax.swing.JLabel informationHostLabel;
     private javax.swing.JLabel informationLabel;
     private javax.swing.JPanel informationPanel;
     private javax.swing.JProgressBar informationProgress;
-    private javax.swing.JLabel jLabel1;
     private javax.swing.JMenuBar menuBar;
     private javax.swing.JTextPane output;
     private javax.swing.JScrollPane outputScroll;
     private javax.swing.JButton playersButton;
     private javax.swing.JMenuItem playersItem;
+    private javax.swing.JMenu playersMenu;
     private javax.swing.JButton quitButton;
     private javax.swing.JMenuItem quitItem;
     private javax.swing.JMenuItem reconnectItem;
     private javax.swing.JButton saveButton;
     private javax.swing.JMenuItem saveItem;
-    private javax.swing.JLabel sourcesLabel;
     private javax.swing.JLabel sourcesValue;
     private javax.swing.JButton stopButton;
     private javax.swing.JMenuItem stopItem;
     private javax.swing.JMenuItem updatesItem;
-    private javax.swing.JLabel versionLabel;
     private javax.swing.JLabel versionValue;
+    private javax.swing.JMenuItem whiteListItem;
     // End of variables declaration//GEN-END:variables
 
     public void catchException(Exception ex) {

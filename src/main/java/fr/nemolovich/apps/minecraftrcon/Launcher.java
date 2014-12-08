@@ -48,7 +48,8 @@ public class Launcher {
         + "\\:(?<port>\\d+)$");
     private static final Logger LOGGER = Logger.getLogger(Launcher.class);
 
-    private static final String REMOTE_DOWNLOAD = "https://rawgit.com/nemolovich/MinecraftRcon/master/downloads/";
+    private static final String REMOTE_DOWNLOAD
+        = "https://rawgit.com/nemolovich/MinecraftRcon/master/downloads/";
 
     private static final String APP_NAME = "MinecraftRcon";
 
@@ -61,7 +62,7 @@ public class Launcher {
     public static void main(String[] args) throws AuthenticationException {
         BasicConfigurator.configure();
         Thread.currentThread().setName("Launcher-Thread");
-        
+
         if (args.length < 1 || !args[0].startsWith(RUN_FILE_PREFIX)
             || args[0].length() <= RUN_FILE_PREFIX.length()) {
             // Launch from IDE?
@@ -137,6 +138,8 @@ public class Launcher {
         JPasswordField passwordField = new JPasswordField();
         controls.add(passwordField);
         panel.add(controls, BorderLayout.CENTER);
+        hostField.setText("raspberry:20066");
+        passwordField.setText("Minecraft2580");
 
         String host;
         Matcher matcher = null;
