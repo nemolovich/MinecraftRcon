@@ -17,9 +17,11 @@ import fr.nemolovich.apps.minecraftrcon.gui.command.CommandsUtils;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CommandListSelectionListener;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CommandsTableModel;
 import fr.nemolovich.apps.minecraftrcon.gui.table.ITableModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.TableModelManager;
 import fr.nemolovich.apps.minecraftrcon.gui.utils.LinkLabel;
 import fr.nemolovich.apps.minecraftrcon.socket.ClientSocket;
 import fr.nemolovich.apps.minecraftrcon.socket.PingThread;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
@@ -43,6 +45,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JTextPane;
@@ -55,6 +58,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
+
 import org.apache.log4j.Logger;
 import org.jdesktop.swingx.JXErrorPane;
 import org.jdesktop.swingx.error.ErrorInfo;
@@ -122,13 +126,13 @@ public class MainFrame extends javax.swing.JFrame {
     /*
      * Fonts
      */
-    private static final Font MIRIAM_FONT_NORMAL_BOLD
+    public static final Font MIRIAM_FONT_NORMAL_BOLD
         = new Font("Miriam Fixed", Font.BOLD, 14);
     private static final Font MIRIAM_FONT_NORMAL
         = new Font("Miriam Fixed", Font.PLAIN, 14);
     private static final Font MIRIAM_FONT_SMALL_BOLD
         = new Font("Miriam Fixed", Font.BOLD, 12);
-    private static final Font MIRIAM_FONT_SMALL
+    public static final Font MIRIAM_FONT_SMALL
         = new Font("Miriam Fixed", Font.PLAIN, 12);
     private static final Font MIRIAM_FONT_TINY_BOLD
         = new Font("Miriam Fixed", Font.BOLD, 11);
@@ -498,22 +502,7 @@ public class MainFrame extends javax.swing.JFrame {
         commandsFrame = new javax.swing.JDialog(this);
         availableCommandsLabel = new javax.swing.JLabel();
         commandsListScroll = new javax.swing.JScrollPane();
-        commandsList = new org.jdesktop.swingx.JXTable(new CommandsTableModel()) {
-            @Override
-            public Component prepareRenderer(
-                TableCellRenderer renderer, int row, int column) {
-                Component c = super.prepareRenderer(renderer, row, column);
-                if (isRowSelected(row)) {
-                    c.setBackground(Color.decode("#3399FF"));
-                    c.setForeground(Color.decode("#FFFFFF"));
-                } else {
-                    c.setBackground(commandsList.getBackground());
-                    c.setForeground(commandsList.getForeground());
-                }
-                return c;
-            }
-        }
-        ;
+        commandsList = TableModelManager.getCommandsTable();
         commandHelpScroll = new javax.swing.JScrollPane();
         commandHelpPane = new javax.swing.JTextPane();
         commandHelpLabel = new javax.swing.JLabel();
@@ -672,20 +661,6 @@ public class MainFrame extends javax.swing.JFrame {
         commandsListScroll.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         commandsListScroll.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 
-        commandsList.setBackground(new java.awt.Color(51, 51, 51));
-        commandsList.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-        commandsList.setForeground(new java.awt.Color(170, 170, 170));
-        commandsList.setAutoStartEditOnKeyStroke(false);
-        commandsList.setAutoscrolls(false);
-        commandsList.setEditable(false);
-        commandsList.setFont(MIRIAM_FONT_SMALL);
-        commandsList.setRowSelectionAllowed(false);
-        commandsList.getTableHeader().setResizingAllowed(false);
-        commandsList.getTableHeader().setReorderingAllowed(false);
-        commandsList.getTableHeader().setFont(MIRIAM_FONT_NORMAL_BOLD);
-        commandsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        ((ITableModel)commandsList.getModel()).setTableSorter(commandsList);
-        commandsList.getRowSorter().toggleSortOrder(0);
         commandsListScroll.setViewportView(commandsList);
 
         commandHelpScroll.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -1260,6 +1235,13 @@ public class MainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_closeCommandsListActionPerformed
 
     private void commandsListItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_commandsListItemActionPerformed
+        this.commandsFrame.setTitle("List of available commands");
+        this.commandFilterField.setToolTipText("Filter the commands list (Regular expressions can be used)");
+        availableCommandsLabel.setText("List of server available commands:");
+        this.commandsList.clearSelection();
+        this.commandHelpPane.setText("");
+        this.commandFilterField.setText("");
+        this.filterCommandTable();
         this.commandsFrame.setVisible(true);
     }// GEN-LAST:event_commandsListItemActionPerformed
 
@@ -1278,6 +1260,14 @@ public class MainFrame extends javax.swing.JFrame {
     }// GEN-LAST:event_quitItemActionPerformed
 
     private void playersItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_playersItemActionPerformed
+    	this.commandsFrame.setTitle("List of connected players");
+    	this.commandFilterField.setToolTipText("Filter the players list (Regular expressions can be used)");
+        availableCommandsLabel.setText("List of connected users on server:");
+        this.commandsList.clearSelection();
+        this.commandHelpPane.setText("");
+        this.commandFilterField.setText("");
+        this.filterCommandTable();
+        this.commandsFrame.setVisible(true);
         this.playersButtonActionPerformed(null);
     }// GEN-LAST:event_playersItemActionPerformed
 
@@ -1589,6 +1579,8 @@ public class MainFrame extends javax.swing.JFrame {
         ((CommandsTableModel) commandsList.getModel()).clear();
         this.commandsList.clearSelection();
         this.commandHelpPane.setText("");
+        this.commandFilterField.setText("");
+        this.filterCommandTable();
     }
 
     private void filterCommandTable() {

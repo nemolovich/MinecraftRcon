@@ -18,7 +18,11 @@ import javax.swing.table.TableRowSorter;
  */
 public abstract class CustomTableModel extends AbstractTableModel implements ITableModel {
 
-    private final String[] titles;
+    /**
+	 * UID.
+	 */
+	private static final long serialVersionUID = -2754803157477100141L;
+	private final String[] titles;
     protected Object[][] data;
     protected TableRowSorter<CustomTableModel> sorter;
 

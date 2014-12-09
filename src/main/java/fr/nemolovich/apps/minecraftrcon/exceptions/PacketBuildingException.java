@@ -11,7 +11,12 @@ package fr.nemolovich.apps.minecraftrcon.exceptions;
  */
 public class PacketBuildingException extends Exception {
 
-    public PacketBuildingException(Exception ex) {
+    /**
+	 * UID.
+	 */
+	private static final long serialVersionUID = 5355270871960171857L;
+
+	public PacketBuildingException(Exception ex) {
         super(String.format("The exception building failed: %s",
             ex.getMessage()));
         this.setStackTrace(ex.getStackTrace());

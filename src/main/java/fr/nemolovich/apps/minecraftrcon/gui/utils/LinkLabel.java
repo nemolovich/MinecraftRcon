@@ -17,7 +17,11 @@ import javax.swing.JLabel;
  * @author Nemolovich
  */
 public class LinkLabel extends JLabel {
-    private final String link;
+    /**
+	 * UID.
+	 */
+	private static final long serialVersionUID = -650874775600300779L;
+	private final String link;
 
     public LinkLabel(String link) {
         this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));

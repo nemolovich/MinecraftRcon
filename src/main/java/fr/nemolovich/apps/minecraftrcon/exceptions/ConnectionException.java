@@ -11,7 +11,11 @@ package fr.nemolovich.apps.minecraftrcon.exceptions;
  */
 public class ConnectionException extends Exception {
 
-    public ConnectionException(String host, int port, Exception ex) {
+    /**
+	 * UID.
+	 */
+	private static final long serialVersionUID = -4630594336218123188L;
+	public ConnectionException(String host, int port, Exception ex) {
         super(String.format(
             "Can not access to host '%s' on port '%d'", host, port), ex);
     }
