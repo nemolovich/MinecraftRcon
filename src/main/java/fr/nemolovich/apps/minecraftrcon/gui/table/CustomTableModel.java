@@ -19,10 +19,10 @@ import javax.swing.table.TableRowSorter;
 public abstract class CustomTableModel extends AbstractTableModel implements ITableModel {
 
     /**
-	 * UID.
-	 */
-	private static final long serialVersionUID = -2754803157477100141L;
-	private final String[] titles;
+     * UID.
+     */
+    private static final long serialVersionUID = -2754803157477100141L;
+    private final String[] titles;
     protected Object[][] data;
     protected TableRowSorter<CustomTableModel> sorter;
 
@@ -47,7 +47,7 @@ public abstract class CustomTableModel extends AbstractTableModel implements ITa
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
-        return this.data[rowIndex][0];
+        return this.data[rowIndex][columnIndex];
     }
 
     @Override
@@ -101,15 +101,16 @@ public abstract class CustomTableModel extends AbstractTableModel implements ITa
 
     @Override
     public final void setTableSorter(JTable table) {
-        TableRowSorter<CustomTableModel> rowSorter = 
-            new TableRowSorter((CustomTableModel) table.getModel());
+        TableRowSorter<CustomTableModel> rowSorter
+            = new TableRowSorter((CustomTableModel) table.getModel());
         table.setRowSorter(rowSorter);
         this.sorter = rowSorter;
     }
 
     @Override
     public void filter(String filter) throws PatternSyntaxException {
-        RowFilter<CustomTableModel, Object> rf = RowFilter.regexFilter(filter, 0);
+        RowFilter<CustomTableModel, Object> rf = RowFilter.regexFilter(
+            "(?i)(".concat(filter).concat(")"), 0);
         this.sorter.setRowFilter(rf);
     }
 

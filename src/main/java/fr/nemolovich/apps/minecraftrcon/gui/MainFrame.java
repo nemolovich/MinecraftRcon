@@ -6,6 +6,7 @@
 package fr.nemolovich.apps.minecraftrcon.gui;
 
 import fr.nemolovich.apps.minecraftrcon.Launcher;
+import fr.nemolovich.apps.minecraftrcon.config.GlobalConfig;
 import fr.nemolovich.apps.minecraftrcon.exceptions.AuthenticationException;
 import fr.nemolovich.apps.minecraftrcon.exceptions.BrowserException;
 import fr.nemolovich.apps.minecraftrcon.exceptions.ConnectionException;
@@ -16,12 +17,14 @@ import fr.nemolovich.apps.minecraftrcon.gui.command.Command;
 import fr.nemolovich.apps.minecraftrcon.gui.command.CommandsUtils;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CommandListSelectionListener;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CommandsTableModel;
-import fr.nemolovich.apps.minecraftrcon.gui.table.ITableModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.CustomTableModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.PlayersIPTableModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.PlayersTableModel;
 import fr.nemolovich.apps.minecraftrcon.gui.table.TableModelManager;
+import fr.nemolovich.apps.minecraftrcon.gui.table.frame.TableFrameModel;
 import fr.nemolovich.apps.minecraftrcon.gui.utils.LinkLabel;
 import fr.nemolovich.apps.minecraftrcon.socket.ClientSocket;
 import fr.nemolovich.apps.minecraftrcon.socket.PingThread;
-
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
@@ -45,7 +48,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JTextPane;
@@ -53,12 +55,10 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
-import javax.swing.table.TableCellRenderer;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
-
 import org.apache.log4j.Logger;
 import org.jdesktop.swingx.JXErrorPane;
 import org.jdesktop.swingx.error.ErrorInfo;
@@ -160,6 +160,7 @@ public class MainFrame extends javax.swing.JFrame {
 
     private final Border fieldBorder;
     private final Color fieldColor;
+    private ParallelTask updatePlayersListTask;
 
     /**
      * Creates new form MainFrame.
@@ -244,6 +245,35 @@ public class MainFrame extends javax.swing.JFrame {
         this.initComponents();
 
         this.customInitComponents();
+        if ((Boolean) GlobalConfig.getInstance().get(
+            GlobalConfig.PLAYERS_IP_AVAILABLE)) {
+            this.updatePlayersListTask = new ParallelTask() {
+
+                @Override
+                protected Object runTask() throws Exception {
+                    for (String player : Arrays.asList("Player1", "Player2")) {
+                        ((PlayersIPTableModel) commandsList.getModel()).addPlayer(player,
+                            null);
+                    }
+                    write(getRequestResponse("players"), Level.INFO, commandHelpPane);
+                    commandHelpPane.setCaretPosition(0);
+                    return null;
+                }
+            };
+        } else {
+            this.updatePlayersListTask = new ParallelTask() {
+
+                @Override
+                protected Object runTask() throws Exception {
+                    for (String player : Arrays.asList("Player1", "Player2")) {
+                        ((PlayersTableModel) commandsList.getModel()).addPlayer(player);
+                    }
+                    write(getRequestResponse("list"), Level.INFO, commandHelpPane);
+                    commandHelpPane.setCaretPosition(0);
+                    return null;
+                }
+            };
+        }
 
         this.setVisible(true);
         this.fieldBorder = this.commandFilterField.getBorder();
@@ -502,7 +532,7 @@ public class MainFrame extends javax.swing.JFrame {
         commandsFrame = new javax.swing.JDialog(this);
         availableCommandsLabel = new javax.swing.JLabel();
         commandsListScroll = new javax.swing.JScrollPane();
-        commandsList = TableModelManager.getCommandsTable();
+        commandsList = TableModelManager.getCommandsFrame().getTable();
         commandHelpScroll = new javax.swing.JScrollPane();
         commandHelpPane = new javax.swing.JTextPane();
         commandHelpLabel = new javax.swing.JLabel();
@@ -660,7 +690,6 @@ public class MainFrame extends javax.swing.JFrame {
 
         commandsListScroll.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         commandsListScroll.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-
         commandsListScroll.setViewportView(commandsList);
 
         commandHelpScroll.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -717,7 +746,7 @@ public class MainFrame extends javax.swing.JFrame {
         commandListClearFilterButton.setBackground(new java.awt.Color(255, 255, 255));
         commandListClearFilterButton.setFont(new java.awt.Font("Dialog", 1, 10)); // NOI18N
         commandListClearFilterButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fr/nemolovich/apps/minecraftrcon/gui/icon/clear.png"))); // NOI18N
-        commandListClearFilterButton.setToolTipText("Clear the command text filter");
+        commandListClearFilterButton.setToolTipText("Clear the filter field");
         commandListClearFilterButton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         commandListClearFilterButton.setMaximumSize(new java.awt.Dimension(20, 20));
         commandListClearFilterButton.setMinimumSize(new java.awt.Dimension(20, 20));
@@ -1235,14 +1264,7 @@ public class MainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_closeCommandsListActionPerformed
 
     private void commandsListItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_commandsListItemActionPerformed
-        this.commandsFrame.setTitle("List of available commands");
-        this.commandFilterField.setToolTipText("Filter the commands list (Regular expressions can be used)");
-        availableCommandsLabel.setText("List of server available commands:");
-        this.commandsList.clearSelection();
-        this.commandHelpPane.setText("");
-        this.commandFilterField.setText("");
-        this.filterCommandTable();
-        this.commandsFrame.setVisible(true);
+        this.updateDynamicFrame(TableModelManager.getCommandsFrame(), false, null);
     }// GEN-LAST:event_commandsListItemActionPerformed
 
     private void reconnectItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_reconnectItemActionPerformed
@@ -1260,14 +1282,8 @@ public class MainFrame extends javax.swing.JFrame {
     }// GEN-LAST:event_quitItemActionPerformed
 
     private void playersItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_playersItemActionPerformed
-    	this.commandsFrame.setTitle("List of connected players");
-    	this.commandFilterField.setToolTipText("Filter the players list (Regular expressions can be used)");
-        availableCommandsLabel.setText("List of connected users on server:");
-        this.commandsList.clearSelection();
-        this.commandHelpPane.setText("");
-        this.commandFilterField.setText("");
-        this.filterCommandTable();
-        this.commandsFrame.setVisible(true);
+        this.updateDynamicFrame(TableModelManager.getPlayersFrame(), true,
+            this.updatePlayersListTask);
         this.playersButtonActionPerformed(null);
     }// GEN-LAST:event_playersItemActionPerformed
 
@@ -1576,18 +1592,45 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     private void clearCommandFrame() {
-        ((CommandsTableModel) commandsList.getModel()).clear();
+        ((CustomTableModel) commandsList.getModel()).clear();
         this.commandsList.clearSelection();
         this.commandHelpPane.setText("");
         this.commandFilterField.setText("");
         this.filterCommandTable();
     }
 
+    private void updateDynamicFrame(TableFrameModel frameModel,
+        boolean clear, ParallelTask task) {
+        this.commandsList.clearSelection();
+        this.commandHelpPane.setText("");
+        this.commandFilterField.setText("");
+
+        this.commandsFrame.setTitle(frameModel.getFrameTitle());
+        this.commandFilterField.setToolTipText(
+            frameModel.getFrameFilterTooltip());
+        this.availableCommandsLabel.setText(frameModel.getFrameHeaderLabel());
+        this.commandHelpLabel.setText(frameModel.getFrameBoxLabel());
+
+        this.commandsList = frameModel.getTable();
+
+        if (clear) {
+            ((CustomTableModel) this.commandsList.getModel()).clear();
+        }
+        if (task != null) {
+            task.execute();
+        }
+
+        this.commandsFrame.pack();
+        this.commandFilterField.requestFocusInWindow();
+        this.commandsListScroll.setViewportView(this.commandsList);
+        this.commandsFrame.setVisible(true);
+    }
+
     private void filterCommandTable() {
         this.commandFilterField.setBorder(this.fieldBorder);
         this.commandFilterField.setForeground(this.fieldColor);
         try {
-            ((CommandsTableModel) this.commandsList.getModel()).filter(
+            ((CustomTableModel) this.commandsList.getModel()).filter(
                 this.commandFilterField.getText());
         } catch (PatternSyntaxException ex) {
             LOGGER.error("Wrong regex pattern", ex);
@@ -1602,7 +1645,7 @@ public class MainFrame extends javax.swing.JFrame {
         this.commandFilterField.setText("");
         this.commandFilterField.setBorder(this.fieldBorder);
         this.commandFilterField.setForeground(this.fieldColor);
-        ((CommandsTableModel) this.commandsList.getModel()).filter("");
+        ((CustomTableModel) this.commandsList.getModel()).filter("");
         this.commandsList.scrollRowToVisible(this.commandsList.getSelectedRow());
     }
 
