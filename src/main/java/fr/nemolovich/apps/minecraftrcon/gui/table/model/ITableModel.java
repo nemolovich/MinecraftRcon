@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package fr.nemolovich.apps.minecraftrcon.gui.table;
+package fr.nemolovich.apps.minecraftrcon.gui.table.model;
 
 import java.util.regex.PatternSyntaxException;
 import javax.swing.JTable;

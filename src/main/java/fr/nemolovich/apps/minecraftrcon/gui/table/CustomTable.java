@@ -1,5 +1,7 @@
 package fr.nemolovich.apps.minecraftrcon.gui.table;
 
+import fr.nemolovich.apps.minecraftrcon.gui.table.model.ITableModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.model.CustomTableModel;
 import fr.nemolovich.apps.minecraftrcon.gui.MainFrame;
 import java.awt.Color;
 import java.awt.Component;

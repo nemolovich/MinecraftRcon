@@ -5,15 +5,15 @@
  */
 package fr.nemolovich.apps.minecraftrcon;
 
-import static org.junit.Assert.assertTrue;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 /**
@@ -28,8 +28,7 @@ public class TestPattern {
         .compile("-{7,}\\s.+:\\s.+\\s\\(\\d+/(?<nbPages>\\d+)\\)\\s-{7,}.*");
     private static final Pattern SERVER_CUSTOM_COMMAND_PATTERN = Pattern
         .compile("\n(?<cmd>\\w+(-\\w+)*):\\s");
-    
-    
+
     private static final String HELP_MSG_1 = "\u00A7e--------- \u00A7fHelp: Index (1/6) \u00A7e---------------------\n"
         + "\u00A77A?>;L795B5 /help [=><5@ AB@0=8FK] GB>1K ?5@5<5I0BLAO?>\n"
         + "\u00A77AB@0=8F0<.\n"
@@ -101,9 +100,88 @@ public class TestPattern {
         + "\u00A7f?@54<5BC 8 53> 40==K<.\n"
         + "\u00A76/defaultgamemode: \u00A7fKAB02;O5B 83@>2>9 @568< ?> C<>;G0=8N\n";
 
+    private static final String PLAYER_NAME_PATTERN
+        = "(?<playerName>[^\\n]+)";
+    private static final String PLAYER_IP_PATTERN
+        = "(?<playerIP>\\[\\d{1,3}(\\.\\d{1,3}){3}\\])";
+    private static final Pattern PLAYER_IP_CLEANER
+        = Pattern.compile("(?<otherChar>[^\\d\\.])");
+    private static final Pattern PLAYERS_LIST_IP_PATTERN = Pattern
+        .compile(String.format("(?:(?<line>%s\\s+%s*)\\n)",
+                PLAYER_NAME_PATTERN, PLAYER_IP_PATTERN));
+    private static final String PLAYERS_LIST_IP_EMPTY = "§fThere are no players online\n";
+    private static final String PLAYERS_LIST_IP = "§fThere are §a1§f/§b4§f players online:\n"
+        + "§aPlayer1        §e[§b192.168.1.101§e]\n"
+        + "§aPlayer2        §e[§b192.168.1.102§e]\n"
+        + "§aPlayer3        §e[§b192.168.1.103§e]\n";
+    private static final Pattern PLAYERS_LIST_PATTERN = Pattern
+        .compile("(?:(?<line>[^\\n]*)\\n)");
+    private static final String PLAYERS_LIST_EMPTY = "There are 0/4 players online:\n\n";
+    private static final String PLAYERS_LIST = "There are 1/4 players online:\n"
+        + "Player1\n"
+        + "Player2\n"
+        + "Player3\n";
+
     @Test
     public void test1() throws FileNotFoundException, IOException {
         assertTrue(parseServerCommands(HELP_MSG_1).size() > 0);
+    }
+
+    @Test
+    public void test2() throws FileNotFoundException, IOException {
+        assertTrue(parsePlayersList(PLAYERS_LIST_EMPTY).isEmpty());
+        assertTrue(parsePlayersList(PLAYERS_LIST).size() == 3);
+    }
+
+    @Test
+    public void test3() throws FileNotFoundException, IOException {
+        assertTrue(parsePlayersWithIPList(PLAYERS_LIST_IP_EMPTY).isEmpty());
+        assertTrue(parsePlayersWithIPList(PLAYERS_LIST_IP).size() == 3);
+    }
+
+    private List<String> parsePlayersList(String msg) {
+        List<String> result = new ArrayList<>();
+
+        if (msg.contains("\n")) {
+            String resp = parseColorString(msg.substring(msg.indexOf("\n") + 1));
+            Matcher matcher = PLAYERS_LIST_PATTERN.matcher(resp);
+
+            String playerName;
+            while (matcher.find()) {
+                playerName = matcher.group("line");
+                if (!playerName.isEmpty() && !playerName.equalsIgnoreCase("\n")) {
+                    result.add(playerName);
+                }
+            }
+        }
+        return result;
+    }
+
+    private Map<String, String> parsePlayersWithIPList(String msg) {
+        Map<String, String> result = new HashMap<>();
+
+        if (msg.contains("\n")) {
+            String resp = parseColorString(msg.substring(msg.indexOf("\n") + 1));
+            Matcher matcher = PLAYERS_LIST_IP_PATTERN.matcher(resp);
+
+            String playerName;
+            String playerIP;
+            while (matcher.find()) {
+                if (!matcher.group("line").isEmpty()) {
+                    playerName = matcher.group("playerName").trim();
+                    playerIP = matcher.group("playerIP").trim();
+                    Matcher m = PLAYER_IP_CLEANER.matcher(playerIP);
+                    while (m.find()) {
+                        playerIP = playerIP.replace(m.group("otherChar"), "");
+                    }
+                    if (!playerName.isEmpty()
+                        && !playerName.equalsIgnoreCase("\n")) {
+                        result.put(playerName, playerIP);
+                    }
+                }
+            }
+        }
+        return result;
     }
 
     private List<String> parseServerCommands(String msg) {

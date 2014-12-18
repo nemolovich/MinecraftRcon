@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -125,5 +126,13 @@ public class CommandsUtils {
         }
         SERVER_COMMANDS.clear();
     }
-
+    
+    public static Map<String, String> parsePlayersWithIP(String response) {
+        Map<String, String> result=null;
+        
+        
+        
+        return result;
+    }
+    
 }

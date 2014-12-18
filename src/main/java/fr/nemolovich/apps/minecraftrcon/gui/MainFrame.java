@@ -14,14 +14,15 @@ import fr.nemolovich.apps.minecraftrcon.gui.colors.MinecraftColors;
 import fr.nemolovich.apps.minecraftrcon.gui.colors.MinecraftColorsConstants;
 import fr.nemolovich.apps.minecraftrcon.gui.colors.MinecraftColorsUtil;
 import fr.nemolovich.apps.minecraftrcon.gui.command.Command;
+import fr.nemolovich.apps.minecraftrcon.gui.command.CommandConstants;
 import fr.nemolovich.apps.minecraftrcon.gui.command.CommandsUtils;
-import fr.nemolovich.apps.minecraftrcon.gui.table.CommandListSelectionListener;
-import fr.nemolovich.apps.minecraftrcon.gui.table.CommandsTableModel;
-import fr.nemolovich.apps.minecraftrcon.gui.table.CustomTableModel;
-import fr.nemolovich.apps.minecraftrcon.gui.table.PlayersIPTableModel;
-import fr.nemolovich.apps.minecraftrcon.gui.table.PlayersTableModel;
-import fr.nemolovich.apps.minecraftrcon.gui.table.TableModelManager;
 import fr.nemolovich.apps.minecraftrcon.gui.table.frame.TableFrameModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.listener.CommandListSelectionListener;
+import fr.nemolovich.apps.minecraftrcon.gui.table.model.CommandsTableModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.model.CustomTableModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.model.PlayersIPTableModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.model.PlayersTableModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.model.TableModelManager;
 import fr.nemolovich.apps.minecraftrcon.gui.utils.LinkLabel;
 import fr.nemolovich.apps.minecraftrcon.socket.ClientSocket;
 import fr.nemolovich.apps.minecraftrcon.socket.PingThread;
@@ -160,7 +161,8 @@ public class MainFrame extends javax.swing.JFrame {
 
     private final Border fieldBorder;
     private final Color fieldColor;
-    private ParallelTask updatePlayersListTask;
+    private final ParallelTask updatePlayersListTask;
+    private final String playersListCommand;
 
     /**
      * Creates new form MainFrame.
@@ -247,20 +249,24 @@ public class MainFrame extends javax.swing.JFrame {
         this.customInitComponents();
         if ((Boolean) GlobalConfig.getInstance().get(
             GlobalConfig.PLAYERS_IP_AVAILABLE)) {
+            this.playersListCommand = GlobalConfig.getInstance()
+                .getProperty(GlobalConfig.PLAYERS_IP_COMMAND);
             this.updatePlayersListTask = new ParallelTask() {
 
                 @Override
                 protected Object runTask() throws Exception {
                     for (String player : Arrays.asList("Player1", "Player2")) {
                         ((PlayersIPTableModel) commandsList.getModel()).addPlayer(player,
-                            null);
+                            "ipX");
                     }
-                    write(getRequestResponse("players"), Level.INFO, commandHelpPane);
+                    write(getRequestResponse(playersListCommand),
+                        Level.INFO, commandHelpPane);
                     commandHelpPane.setCaretPosition(0);
                     return null;
                 }
             };
         } else {
+            this.playersListCommand = CommandConstants.PLAYERS_LIST_COMMAND;
             this.updatePlayersListTask = new ParallelTask() {
 
                 @Override
@@ -268,7 +274,8 @@ public class MainFrame extends javax.swing.JFrame {
                     for (String player : Arrays.asList("Player1", "Player2")) {
                         ((PlayersTableModel) commandsList.getModel()).addPlayer(player);
                     }
-                    write(getRequestResponse("list"), Level.INFO, commandHelpPane);
+                    write(getRequestResponse(playersListCommand),
+                        Level.INFO, commandHelpPane);
                     commandHelpPane.setCaretPosition(0);
                     return null;
                 }
@@ -371,7 +378,8 @@ public class MainFrame extends javax.swing.JFrame {
         String result = null;
 
         try {
-            result = this.getRequestResponse(String.format("help %s", command));
+            result = this.getRequestResponse(String.format("%s %s",
+                CommandConstants.HELP_COMMAND, command));
         } catch (IOException ex) {
             LOGGER.error(String.format("Can not retrieve help for command %s",
                 command), ex);
@@ -386,8 +394,8 @@ public class MainFrame extends javax.swing.JFrame {
     private String getNextHelp(int index, String command) {
         String result = null;
         try {
-            result = this.getRequestResponse(String.format("help %s%d",
-                command, index));
+            result = this.getRequestResponse(String.format("%s %s%d",
+                CommandConstants.HELP_COMMAND, command, index));
         } catch (IOException ex) {
             LOGGER.error(String.format("Can not retrieve help %s#%d", command,
                 index), ex);
@@ -413,7 +421,7 @@ public class MainFrame extends javax.swing.JFrame {
         this.clear();
 
         try {
-            String helpMsg = this.getRequestResponse("help");
+            String helpMsg = this.getRequestResponse(CommandConstants.HELP_COMMAND);
             List<String> serverCommands = this.parseServerCommands(helpMsg);
             CommandsUtils.addServerCommand(serverCommands);
         } catch (IOException ex) {
@@ -1352,7 +1360,8 @@ public class MainFrame extends javax.swing.JFrame {
         this.fine(String.format("Players list:%n"));
         try {
             // this.info(this.getRequestResponse("list"));
-            this.parrallelInfo("%s", "list");
+            this.parrallelInfo("%s", GlobalConfig.getInstance()
+                .getProperty(GlobalConfig.PLAYERS_IP_COMMAND));
         } catch (IOException ex) {
             String error = "Can not retrieve players list";
             LOGGER.error(error, ex);
@@ -1399,7 +1408,8 @@ public class MainFrame extends javax.swing.JFrame {
                 if (CommandsUtils.getInternalCommands().contains(commandName)) {
                     Command c = CommandsUtils.getInternalCommand(commandName);
                     c.doCommand(params);
-                } else if (commandName.equals("/help")
+                } else if (commandName.equals(String.format("%s",
+                    CommandConstants.HELP_COMMAND))
                     && params.length > 0
                     && CommandsUtils.getInternalCommands().contains(
                         String.format("/%s", params[0]))) {
@@ -1468,8 +1478,10 @@ public class MainFrame extends javax.swing.JFrame {
         for (String cmd : availableCommands) {
             if (cmd.startsWith(line)) {
                 suggestions.add(String.format("%s ", cmd));
-            } else if (line.startsWith("/help ")) {
-                String hLine = line.substring("/help ".length());
+            } else if (line.startsWith(String.format("/%s ",
+                CommandConstants.HELP_COMMAND))) {
+                String hLine = line.substring(String.format("/%s ",
+                    CommandConstants.HELP_COMMAND).length());
                 if (cmd.substring(1).startsWith(hLine)) {
                     suggestions.add(String.format("%s", cmd.substring(1)));
                 }
@@ -1480,7 +1492,8 @@ public class MainFrame extends javax.swing.JFrame {
             if (text.startsWith("/")) {
                 this.commandField.setText(text);
             } else {
-                this.commandField.setText(String.format("/help %s ", text));
+                this.commandField.setText(String.format("/%s %s ",
+                    CommandConstants.HELP_COMMAND, text));
             }
         } else if (suggestions.size() > 1
             && suggestions.size() < availableCommands.size()) {

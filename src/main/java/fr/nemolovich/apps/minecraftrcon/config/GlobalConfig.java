@@ -13,6 +13,7 @@ import java.util.Properties;
  */
 public class GlobalConfig extends Properties {
     public static final String PLAYERS_IP_AVAILABLE="players.ip.available";
+    public static final String PLAYERS_IP_COMMAND="players.ip.command";
     
     private static final GlobalConfig INSTANCE;
     

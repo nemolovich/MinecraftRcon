@@ -5,9 +5,9 @@
  */
 package fr.nemolovich.apps.minecraftrcon.gui.table.frame;
 
-import fr.nemolovich.apps.minecraftrcon.gui.table.CommandListSelectionListener;
+import fr.nemolovich.apps.minecraftrcon.gui.table.listener.CommandListSelectionListener;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CustomTable;
-import fr.nemolovich.apps.minecraftrcon.gui.table.CustomTableModel;
+import fr.nemolovich.apps.minecraftrcon.gui.table.model.CustomTableModel;
 
 /**
  *
