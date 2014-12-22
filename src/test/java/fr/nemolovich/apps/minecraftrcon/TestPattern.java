@@ -109,11 +109,11 @@ public class TestPattern {
     private static final Pattern PLAYERS_LIST_IP_PATTERN = Pattern
         .compile(String.format("(?:(?<line>%s\\s+%s*)\\n)",
                 PLAYER_NAME_PATTERN, PLAYER_IP_PATTERN));
-    private static final String PLAYERS_LIST_IP_EMPTY = "§fThere are no players online\n";
-    private static final String PLAYERS_LIST_IP = "§fThere are §a1§f/§b4§f players online:\n"
-        + "§aPlayer1        §e[§b192.168.1.101§e]\n"
-        + "§aPlayer2        §e[§b192.168.1.102§e]\n"
-        + "§aPlayer3        §e[§b192.168.1.103§e]\n";
+    private static final String PLAYERS_LIST_IP_EMPTY = "Â§fThere are no players online\n";
+    private static final String PLAYERS_LIST_IP = "Â§fThere are Â§a1Â§f/Â§b4Â§f players online:\n"
+        + "Â§aPlayer1        Â§e[Â§b192.168.1.101Â§e]\n"
+        + "Â§aPlayer2        Â§e[Â§b192.168.1.102Â§e]\n"
+        + "Â§aPlayer3        Â§e[Â§b192.168.1.103Â§e]\n";
     private static final Pattern PLAYERS_LIST_PATTERN = Pattern
         .compile("(?:(?<line>[^\\n]*)\\n)");
     private static final String PLAYERS_LIST_EMPTY = "There are 0/4 players online:\n\n";
@@ -139,11 +139,11 @@ public class TestPattern {
         assertTrue(parsePlayersWithIPList(PLAYERS_LIST_IP).size() == 3);
     }
 
-    private List<String> parsePlayersList(String msg) {
+    private List<String> parsePlayersList(String response) {
         List<String> result = new ArrayList<>();
 
-        if (msg.contains("\n")) {
-            String resp = parseColorString(msg.substring(msg.indexOf("\n") + 1));
+        if (response.contains("\n")) {
+            String resp = parseColorString(response.substring(response.indexOf("\n") + 1));
             Matcher matcher = PLAYERS_LIST_PATTERN.matcher(resp);
 
             String playerName;
@@ -157,11 +157,11 @@ public class TestPattern {
         return result;
     }
 
-    private Map<String, String> parsePlayersWithIPList(String msg) {
+    private Map<String, String> parsePlayersWithIPList(String response) {
         Map<String, String> result = new HashMap<>();
 
-        if (msg.contains("\n")) {
-            String resp = parseColorString(msg.substring(msg.indexOf("\n") + 1));
+        if (response.contains("\n")) {
+            String resp = parseColorString(response.substring(response.indexOf("\n") + 1));
             Matcher matcher = PLAYERS_LIST_IP_PATTERN.matcher(resp);
 
             String playerName;

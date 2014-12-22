@@ -109,8 +109,12 @@ public abstract class CustomTableModel extends AbstractTableModel implements ITa
 
     @Override
     public void filter(String filter) throws PatternSyntaxException {
+        int[] indexes = new int[this.titles.length];
+        for (int i = 0; i < this.titles.length; i++) {
+            indexes[i] = i;
+        }
         RowFilter<CustomTableModel, Object> rf = RowFilter.regexFilter(
-            "(?i)(".concat(filter).concat(")"), 0);
+            "(?i)(".concat(filter).concat(")"), indexes);
         this.sorter.setRowFilter(rf);
     }
 

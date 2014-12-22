@@ -1,9 +1,5 @@
 package fr.nemolovich.apps.minecraftrcon.gui.table.model;
 
-import fr.nemolovich.apps.minecraftrcon.gui.table.model.PlayersTableModel;
-import fr.nemolovich.apps.minecraftrcon.gui.table.model.CommandsTableModel;
-import fr.nemolovich.apps.minecraftrcon.gui.table.model.CustomTableModel;
-import fr.nemolovich.apps.minecraftrcon.gui.table.model.PlayersIPTableModel;
 import fr.nemolovich.apps.minecraftrcon.config.GlobalConfig;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CustomTable;
 import fr.nemolovich.apps.minecraftrcon.gui.table.frame.TableFrameModel;

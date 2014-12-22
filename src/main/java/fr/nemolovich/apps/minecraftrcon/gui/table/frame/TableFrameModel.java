@@ -5,26 +5,33 @@
  */
 package fr.nemolovich.apps.minecraftrcon.gui.table.frame;
 
-import fr.nemolovich.apps.minecraftrcon.gui.table.listener.CommandListSelectionListener;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CustomTable;
+import fr.nemolovich.apps.minecraftrcon.gui.table.listener.CommandListSelectionListener;
 import fr.nemolovich.apps.minecraftrcon.gui.table.model.CustomTableModel;
+import javax.swing.JButton;
 
 /**
  *
  * @author Nemolovich
  */
 public class TableFrameModel {
+
     private String frameTitle;
     private String frameHeaderLabel;
     private String frameBoxLabel;
     private String frameFilterTooltip;
-    
+
     private CommandListSelectionListener listener;
-    
+
     private CustomTable table;
     private CustomTableModel model;
 
+    private JButton[] buttonsList;
+    private int nbButton;
+
     public TableFrameModel() {
+        this.buttonsList = new JButton[3];
+        this.nbButton = 0;
     }
 
     public String getFrameTitle() {
@@ -81,5 +88,12 @@ public class TableFrameModel {
 
     public void setTable(CustomTable table) {
         this.table = table;
+    }
+
+    public void addButton(JButton button) {
+        if (this.nbButton < 3) {
+            this.buttonsList[this.nbButton] = button;
+            this.nbButton++;
+        }
     }
 }

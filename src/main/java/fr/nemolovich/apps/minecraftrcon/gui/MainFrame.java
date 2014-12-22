@@ -32,6 +32,8 @@ import java.awt.Container;
 import java.awt.Desktop;
 import java.awt.FocusTraversalPolicy;
 import java.awt.Font;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -45,13 +47,18 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JTextPane;
+import javax.swing.JViewport;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
@@ -84,7 +91,7 @@ public class MainFrame extends javax.swing.JFrame {
     private static final String RESOURCES_PATH = "/fr/nemolovich/apps/minecraftrcon/gui/";
 
     /*
-     * Commands
+     * Commands regex patterns
      */
     private static final Pattern SERVER_BASIC_COMMAND_PATTERN = Pattern
         .compile("\n(?<cmd>/\\w+(-\\w+)*):\\s");
@@ -92,6 +99,18 @@ public class MainFrame extends javax.swing.JFrame {
         .compile("-{7,}\\s.+:\\s.+\\s\\(\\d+/(?<nbPages>\\d+)\\)\\s-{7,}.*");
     private static final Pattern SERVER_CUSTOM_COMMAND_PATTERN = Pattern
         .compile("\n(?<cmd>\\w+(-\\w+)*):\\s");
+
+    private static final String PLAYER_NAME_PATTERN
+        = "(?<playerName>[^\\n]+)";
+    private static final String PLAYER_IP_PATTERN
+        = "(?<playerIP>\\[\\d{1,3}(\\.\\d{1,3}){3}\\])";
+    private static final Pattern PLAYER_IP_CLEANER
+        = Pattern.compile("(?<otherChar>[^\\d\\.])");
+    private static final Pattern PLAYERS_LIST_IP_PATTERN = Pattern
+        .compile(String.format("(?:(?<line>%s\\s+%s*)\\n)",
+                PLAYER_NAME_PATTERN, PLAYER_IP_PATTERN));
+    private static final Pattern PLAYERS_LIST_PATTERN = Pattern
+        .compile("(?:(?<line>[^\\n]*)\\n)");
 
     /*
      * Log styles
@@ -106,6 +125,11 @@ public class MainFrame extends javax.swing.JFrame {
     private static final Style WARNING_STYLE = sc.addStyle("WARNING_STYLE",
         DEFAULT_STYLE);
     private static final List<Style> MINECRAFT_STYLES;
+
+    /*
+     * Static variable
+     */
+    private static final String WRONG_REGEX_PATTERN = "Wrong regex pattern: %s";
 
     static {
         StyleConstants.setForeground(DEFAULT_STYLE, Color.decode("#AAAAAA"));
@@ -162,7 +186,7 @@ public class MainFrame extends javax.swing.JFrame {
     private final Border fieldBorder;
     private final Color fieldColor;
     private final ParallelTask updatePlayersListTask;
-    private final String playersListCommand;
+    private String playersListCommand;
 
     /**
      * Creates new form MainFrame.
@@ -247,6 +271,7 @@ public class MainFrame extends javax.swing.JFrame {
         this.initComponents();
 
         this.customInitComponents();
+
         if ((Boolean) GlobalConfig.getInstance().get(
             GlobalConfig.PLAYERS_IP_AVAILABLE)) {
             this.playersListCommand = GlobalConfig.getInstance()
@@ -255,13 +280,17 @@ public class MainFrame extends javax.swing.JFrame {
 
                 @Override
                 protected Object runTask() throws Exception {
-                    for (String player : Arrays.asList("Player1", "Player2")) {
-                        ((PlayersIPTableModel) commandsList.getModel()).addPlayer(player,
-                            "ipX");
+                    try {
+                        String resp = getRequestResponse(playersListCommand);
+                        for (Entry<String, String> entry
+                            : parsePlayersWithIP(resp).entrySet()) {
+                            ((PlayersIPTableModel) commandsList.getModel())
+                                .addPlayer(entry.getKey(), entry.getValue());
+                        }
+                        write(resp, Level.INFO, commandHelpPane);
+                        commandHelpPane.setCaretPosition(0);
+                    } finally {
                     }
-                    write(getRequestResponse(playersListCommand),
-                        Level.INFO, commandHelpPane);
-                    commandHelpPane.setCaretPosition(0);
                     return null;
                 }
             };
@@ -271,11 +300,12 @@ public class MainFrame extends javax.swing.JFrame {
 
                 @Override
                 protected Object runTask() throws Exception {
-                    for (String player : Arrays.asList("Player1", "Player2")) {
-                        ((PlayersTableModel) commandsList.getModel()).addPlayer(player);
+                    String resp = getRequestResponse(playersListCommand);
+                    for (String player : parsePlayers(resp)) {
+                        ((PlayersTableModel) commandsList.getModel())
+                            .addPlayer(player);
                     }
-                    write(getRequestResponse(playersListCommand),
-                        Level.INFO, commandHelpPane);
+                    write(resp, Level.INFO, commandHelpPane);
                     commandHelpPane.setCaretPosition(0);
                     return null;
                 }
@@ -341,6 +371,52 @@ public class MainFrame extends javax.swing.JFrame {
         List<String> commands = getBasicCommands(content);
         commands.addAll(getCustomCommands(content));
         return commands;
+    }
+
+    public static Map<String, String> parsePlayersWithIP(String response) {
+        Map<String, String> result = new HashMap<>();
+
+        if (response.contains("\n")) {
+            String resp = parseColorString(response.substring(response.indexOf("\n") + 1));
+            Matcher matcher = PLAYERS_LIST_IP_PATTERN.matcher(resp);
+
+            String playerName;
+            String playerIP;
+            while (matcher.find()) {
+                if (!matcher.group("line").isEmpty()) {
+                    playerName = matcher.group("playerName").trim();
+                    playerIP = matcher.group("playerIP").trim();
+                    Matcher m = PLAYER_IP_CLEANER.matcher(playerIP);
+                    while (m.find()) {
+                        playerIP = playerIP.replace(m.group("otherChar"), "");
+                    }
+                    if (!playerName.isEmpty()
+                        && !playerName.equalsIgnoreCase("\n")) {
+                        result.put(playerName, playerIP);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    public static List<String> parsePlayers(String response) {
+        List<String> result = new ArrayList<>();
+
+        if (response.contains("\n")) {
+            String resp = parseColorString(
+                response.substring(response.indexOf("\n") + 1));
+            Matcher matcher = PLAYERS_LIST_PATTERN.matcher(resp);
+
+            String playerName;
+            while (matcher.find()) {
+                playerName = matcher.group("line");
+                if (!playerName.isEmpty() && !playerName.equalsIgnoreCase("\n")) {
+                    result.add(playerName);
+                }
+            }
+        }
+        return result;
     }
 
     private static String parseColorString(String msg) {
@@ -434,18 +510,6 @@ public class MainFrame extends javax.swing.JFrame {
             ((CommandsTableModel) this.commandsList.getModel()).addCommand(command);
         }
 
-        ListSelectionModel listSelectionModel = this.commandsList
-            .getSelectionModel();
-        listSelectionModel
-            .addListSelectionListener(new CommandListSelectionListener(
-                    this.commandsList, new ParallelTask() {
-                        @Override
-                        protected Object runTask() throws Exception {
-                            String command = (String) this.getValue();
-                            selectHelpRow(command);
-                            return null;
-                        }
-                    }));
     }
 
     /**
@@ -518,6 +582,21 @@ public class MainFrame extends javax.swing.JFrame {
                 return commandField;
             }
         });
+
+        ListSelectionModel listSelectionModel = this.commandsList
+            .getSelectionModel();
+        listSelectionModel
+            .addListSelectionListener(new CommandListSelectionListener(
+                    this.commandsList, new ParallelTask() {
+                        @Override
+                        protected Object runTask() throws Exception {
+                            String command = (String) this.getValue();
+                            selectHelpRow(command);
+                            return null;
+                        }
+                    }));
+
+        TableModelManager.getPlayersFrame().addButton(new JButton("Add"));
     }
 
     /**
@@ -548,6 +627,10 @@ public class MainFrame extends javax.swing.JFrame {
         commandFilterField = new javax.swing.JTextField();
         commandFilterLabel = new javax.swing.JLabel();
         commandListClearFilterButton = new javax.swing.JButton();
+        commandListStatusLabel = new javax.swing.JLabel();
+        commandListButton1 = new javax.swing.JButton();
+        commandListButton2 = new javax.swing.JButton();
+        commandListButton3 = new javax.swing.JButton();
         outputScroll = new javax.swing.JScrollPane();
         output = new javax.swing.JTextPane();
         commandField = new javax.swing.JTextField();
@@ -765,6 +848,32 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
+        commandListStatusLabel.setFont(MIRIAM_FONT_SMALL);
+        commandListStatusLabel.setMaximumSize(new java.awt.Dimension(7, 16));
+        commandListStatusLabel.setMinimumSize(new java.awt.Dimension(7, 16));
+        commandListStatusLabel.setPreferredSize(new java.awt.Dimension(7, 16));
+
+        commandListButton1.setFont(MIRIAM_FONT_NORMAL_BOLD);
+        commandListButton1.setText("butt1");
+        commandListButton1.setMaximumSize(new java.awt.Dimension(97, 26));
+        commandListButton1.setMinimumSize(new java.awt.Dimension(97, 26));
+        commandListButton1.setPreferredSize(new java.awt.Dimension(97, 26));
+        commandListButton1.setVisible(false);
+
+        commandListButton2.setFont(MIRIAM_FONT_NORMAL_BOLD);
+        commandListButton2.setText("butt2");
+        commandListButton2.setMaximumSize(new java.awt.Dimension(97, 26));
+        commandListButton2.setMinimumSize(new java.awt.Dimension(97, 26));
+        commandListButton2.setPreferredSize(new java.awt.Dimension(97, 26));
+        commandListButton2.setVisible(false);
+
+        commandListButton3.setFont(MIRIAM_FONT_NORMAL_BOLD);
+        commandListButton3.setText("butt3");
+        commandListButton3.setMaximumSize(new java.awt.Dimension(97, 26));
+        commandListButton3.setMinimumSize(new java.awt.Dimension(97, 26));
+        commandListButton3.setPreferredSize(new java.awt.Dimension(97, 26));
+        commandListButton3.setVisible(false);
+
         javax.swing.GroupLayout commandsFrameLayout = new javax.swing.GroupLayout(commandsFrame.getContentPane());
         commandsFrame.getContentPane().setLayout(commandsFrameLayout);
         commandsFrameLayout.setHorizontalGroup(
@@ -775,9 +884,6 @@ public class MainFrame extends javax.swing.JFrame {
                     .addComponent(commandHelpLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(commandHelpScroll, javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(commandsListScroll)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, commandsFrameLayout.createSequentialGroup()
-                        .addGap(0, 0, Short.MAX_VALUE)
-                        .addComponent(closeCommandsList, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(commandsFrameLayout.createSequentialGroup()
                         .addGap(12, 12, 12)
                         .addComponent(commandFilterLabel)
@@ -785,7 +891,16 @@ public class MainFrame extends javax.swing.JFrame {
                         .addComponent(commandFilterField)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(commandListClearFilterButton, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(availableCommandsLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE))
+                    .addComponent(availableCommandsLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
+                    .addComponent(commandListStatusLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, commandsFrameLayout.createSequentialGroup()
+                        .addComponent(commandListButton1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(commandListButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(commandListButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(closeCommandsList, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
         );
         commandsFrameLayout.setVerticalGroup(
@@ -804,10 +919,16 @@ public class MainFrame extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(commandHelpLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(commandHelpScroll, javax.swing.GroupLayout.DEFAULT_SIZE, 181, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(closeCommandsList, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                .addComponent(commandHelpScroll, javax.swing.GroupLayout.DEFAULT_SIZE, 166, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(commandListStatusLabel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(commandsFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(closeCommandsList, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(commandListButton1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(commandListButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(commandListButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(11, 11, 11))
         );
 
         commandsFrame.pack();
@@ -1292,7 +1413,6 @@ public class MainFrame extends javax.swing.JFrame {
     private void playersItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_playersItemActionPerformed
         this.updateDynamicFrame(TableModelManager.getPlayersFrame(), true,
             this.updatePlayersListTask);
-        this.playersButtonActionPerformed(null);
     }// GEN-LAST:event_playersItemActionPerformed
 
     private void saveItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_saveItemActionPerformed
@@ -1360,8 +1480,7 @@ public class MainFrame extends javax.swing.JFrame {
         this.fine(String.format("Players list:%n"));
         try {
             // this.info(this.getRequestResponse("list"));
-            this.parrallelInfo("%s", GlobalConfig.getInstance()
-                .getProperty(GlobalConfig.PLAYERS_IP_COMMAND));
+            this.parrallelInfo("%s", this.playersListCommand);
         } catch (IOException ex) {
             String error = "Can not retrieve players list";
             LOGGER.error(error, ex);
@@ -1605,6 +1724,7 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     private void clearCommandFrame() {
+        this.commandsList = TableModelManager.getCommandsFrame().getTable();
         ((CustomTableModel) commandsList.getModel()).clear();
         this.commandsList.clearSelection();
         this.commandHelpPane.setText("");
@@ -1614,47 +1734,76 @@ public class MainFrame extends javax.swing.JFrame {
 
     private void updateDynamicFrame(TableFrameModel frameModel,
         boolean clear, ParallelTask task) {
-        this.commandsList.clearSelection();
-        this.commandHelpPane.setText("");
-        this.commandFilterField.setText("");
+        if (!this.commandsList.equals(frameModel.getTable())) {
+            this.commandsList.clearSelection();
 
-        this.commandsFrame.setTitle(frameModel.getFrameTitle());
-        this.commandFilterField.setToolTipText(
-            frameModel.getFrameFilterTooltip());
-        this.availableCommandsLabel.setText(frameModel.getFrameHeaderLabel());
-        this.commandHelpLabel.setText(frameModel.getFrameBoxLabel());
+            if (this.commandsList.getParent() instanceof JViewport) {
+                JViewport viewport = (JViewport) this.commandsList.getParent();
+                Rectangle rect = this.commandsList.getCellRect(0, 0, true);
+                Point pt = viewport.getViewPosition();
+                rect.setLocation(rect.x - pt.x, rect.y - pt.y);
+                this.commandsList.scrollRectToVisible(rect);
+            }
+            this.commandHelpPane.setText("");
+            this.commandFilterField.setText("");
 
-        this.commandsList = frameModel.getTable();
+            this.commandsFrame.setTitle(frameModel.getFrameTitle());
+            this.commandFilterField.setToolTipText(
+                frameModel.getFrameFilterTooltip());
+            this.availableCommandsLabel.setText(frameModel.getFrameHeaderLabel());
+            this.commandHelpLabel.setText(frameModel.getFrameBoxLabel());
 
-        if (clear) {
-            ((CustomTableModel) this.commandsList.getModel()).clear();
+            this.commandsList = frameModel.getTable();
+
+            if (clear) {
+                ((CustomTableModel) this.commandsList.getModel()).clear();
+            }
+            if (task != null) {
+                task.execute();
+            }
+
+            this.commandsFrame.pack();
+            this.commandsListScroll.setViewportView(this.commandsList);
         }
-        if (task != null) {
-            task.execute();
-        }
-
-        this.commandsFrame.pack();
         this.commandFilterField.requestFocusInWindow();
-        this.commandsListScroll.setViewportView(this.commandsList);
         this.commandsFrame.setVisible(true);
     }
 
     private void filterCommandTable() {
+        if (this.commandListStatusLabel.getText().startsWith(
+            String.format(WRONG_REGEX_PATTERN, ""))) {
+            this.commandListStatusLabel.setText("");
+            this.commandListStatusLabel.setToolTipText("");
+            this.commandListStatusLabel.setForeground(this.fieldColor);
+        }
+
         this.commandFilterField.setBorder(this.fieldBorder);
         this.commandFilterField.setForeground(this.fieldColor);
         try {
             ((CustomTableModel) this.commandsList.getModel()).filter(
                 this.commandFilterField.getText());
         } catch (PatternSyntaxException ex) {
-            LOGGER.error("Wrong regex pattern", ex);
+            LOGGER.error(String.format(WRONG_REGEX_PATTERN,
+                ex.getMessage()));
+            this.commandListStatusLabel.setText(String.format(
+                WRONG_REGEX_PATTERN, ex.getMessage()));
+            this.commandListStatusLabel.setToolTipText(String.format(
+                WRONG_REGEX_PATTERN, ex.getMessage()));
+            this.commandListStatusLabel.setForeground(Color.decode("#CC0000"));
             this.commandFilterField.setBorder(
                 javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED,
-                    Color.decode("#CC0000"), Color.decode("#CC9999")));
+                    Color.decode("#CC9999"), Color.decode("#CC0000")));
             this.commandFilterField.setForeground(Color.decode("#CC0000"));
         }
     }
 
     private void clearCommandTableFilter() {
+        if (this.commandListStatusLabel.getText().startsWith(
+            String.format(WRONG_REGEX_PATTERN, ""))) {
+            this.commandListStatusLabel.setText("");
+            this.commandListStatusLabel.setToolTipText("");
+            this.commandListStatusLabel.setForeground(this.fieldColor);
+        }
         this.commandFilterField.setText("");
         this.commandFilterField.setBorder(this.fieldBorder);
         this.commandFilterField.setForeground(this.fieldColor);
@@ -1753,7 +1902,11 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JLabel commandHelpLabel;
     private javax.swing.JTextPane commandHelpPane;
     private javax.swing.JScrollPane commandHelpScroll;
+    private javax.swing.JButton commandListButton1;
+    private javax.swing.JButton commandListButton2;
+    private javax.swing.JButton commandListButton3;
     private javax.swing.JButton commandListClearFilterButton;
+    private javax.swing.JLabel commandListStatusLabel;
     private javax.swing.JMenu commandMenu;
     private javax.swing.JDialog commandsFrame;
     private org.jdesktop.swingx.JXTable commandsList;
