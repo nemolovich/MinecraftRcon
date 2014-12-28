@@ -63,7 +63,7 @@ public class Launcher {
     public static void main(String[] args) throws AuthenticationException {
         BasicConfigurator.configure();
         Thread.currentThread().setName("Launcher-Thread");
-        
+
         GlobalConfig.getInstance().put(GlobalConfig.PLAYERS_IP_AVAILABLE, true);
         GlobalConfig.getInstance().put(GlobalConfig.PLAYERS_IP_COMMAND, "players");
 
@@ -142,9 +142,6 @@ public class Launcher {
         JPasswordField passwordField = new JPasswordField();
         controls.add(passwordField);
         panel.add(controls, BorderLayout.CENTER);
-        
-        hostField.setText("raspberry:20066");
-        passwordField.setText("Minecraft2580");
 
         String host;
         Matcher matcher = null;

@@ -101,8 +101,8 @@ public abstract class CustomTableModel extends AbstractTableModel implements ITa
 
     @Override
     public final void setTableSorter(JTable table) {
-        TableRowSorter<CustomTableModel> rowSorter
-            = new TableRowSorter((CustomTableModel) table.getModel());
+        TableRowSorter<CustomTableModel> rowSorter =
+                new TableRowSorter<>((CustomTableModel) table.getModel());
         table.setRowSorter(rowSorter);
         this.sorter = rowSorter;
     }
@@ -114,8 +114,7 @@ public abstract class CustomTableModel extends AbstractTableModel implements ITa
             indexes[i] = i;
         }
         RowFilter<CustomTableModel, Object> rf = RowFilter.regexFilter(
-            "(?i)(".concat(filter).concat(")"), indexes);
+                "(?i)(".concat(filter).concat(")"), indexes);
         this.sorter.setRowFilter(rf);
     }
-
 }

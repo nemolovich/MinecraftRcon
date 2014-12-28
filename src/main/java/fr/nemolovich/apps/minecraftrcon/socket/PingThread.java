@@ -15,15 +15,12 @@ import org.apache.log4j.Logger;
 public class PingThread extends Thread {
 
     private static final Logger LOGGER = Logger.getLogger(PingThread.class);
-
     public static final int DEFAULT_DELAY = 30000;
     private static final int WAIT_DELAY = 60000;
     private static final PingThread INSTANCE;
-
     private int delay;
     private ClientSocket socket;
     private SwingWorker failAction;
-
     private volatile boolean threadSuspended;
 
     static {
@@ -49,20 +46,23 @@ public class PingThread extends Thread {
 
     @Override
     public void run() {
+        LOGGER.info(String.format("Ping thread %s started",
+                Thread.currentThread().getName()));
         while (true) {
-            LOGGER.info("Active");
             try {
                 while (this.threadSuspended) {
                     synchronized (this) {
-                        LOGGER.info("Wait");
+                        LOGGER.info("Ping thread is currently waiting for connection...");
                         this.wait(WAIT_DELAY);
                     }
                 }
                 if (this.socket != null) {
-                    LOGGER.info("Ping");
+                    LOGGER.info("Sending ping...");
                     if (!this.socket.ping()) {
+                        LOGGER.info("Ping failed!");
                         this.failAction();
                     }
+                    LOGGER.info("Ping OK!");
                 }
                 Thread.sleep(this.delay);
             } catch (InterruptedException ex) {
@@ -72,7 +72,7 @@ public class PingThread extends Thread {
             }
         }
         LOGGER.info(String.format("Thread %s closed",
-            Thread.currentThread().getName()));
+                Thread.currentThread().getName()));
     }
 
     private void failAction() {
@@ -114,5 +114,4 @@ public class PingThread extends Thread {
             this.notify();
         }
     }
-
 }

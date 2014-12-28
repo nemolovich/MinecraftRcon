@@ -6,14 +6,14 @@
     <version>0.0.6</version>
     <name>Minecraft RCON</name>
     <packaging>jar</packaging>
-    
+
     <description>Minecraft RCON administration
     		0.0.4: Fixed SwingWorker to parallelize server request action
     		0.0.5:  * Added ping to check if socket still connected
                         * Disconnect status when error
     		0.0.6:  * Added Commands list filter
                         * Removed connection pending when error</description>
-  
+
     <dependencies>
         <dependency>
             <groupId>log4j</groupId>
@@ -39,12 +39,12 @@
     </dependencies>
     <properties>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.sourceEncoding>latin1</project.build.sourceEncoding>
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
         <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
     </properties>
-    
+
     <build>
         <plugins>
             <plugin>
@@ -54,6 +54,7 @@
                 <configuration>
                     <source>1.7</source>
                     <target>1.7</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
                     <compilerArguments>
                         <endorseddirs>${endorsed.dir}</endorseddirs>
                     </compilerArguments>
@@ -71,6 +72,7 @@
                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                         </manifest>
                     </archive>
+                    <encoding>${project.build.sourceEncoding}</encoding>
                     <finalName>${project.artifactId}-${project.version}</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
                 </configuration>

@@ -96,4 +96,8 @@ public class TableFrameModel {
             this.nbButton++;
         }
     }
+
+    public JButton[] getButtonsList() {
+        return this.buttonsList;
+    }
 }

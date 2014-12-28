@@ -109,11 +109,11 @@ public class TestPattern {
     private static final Pattern PLAYERS_LIST_IP_PATTERN = Pattern
         .compile(String.format("(?:(?<line>%s\\s+%s*)\\n)",
                 PLAYER_NAME_PATTERN, PLAYER_IP_PATTERN));
-    private static final String PLAYERS_LIST_IP_EMPTY = "Â§fThere are no players online\n";
-    private static final String PLAYERS_LIST_IP = "Â§fThere are Â§a1Â§f/Â§b4Â§f players online:\n"
-        + "Â§aPlayer1        Â§e[Â§b192.168.1.101Â§e]\n"
-        + "Â§aPlayer2        Â§e[Â§b192.168.1.102Â§e]\n"
-        + "Â§aPlayer3        Â§e[Â§b192.168.1.103Â§e]\n";
+    private static final String PLAYERS_LIST_IP_EMPTY = "\u00A7fThere are no players online\n";
+    private static final String PLAYERS_LIST_IP = "\u00A7fThere are \u00A7a1\u00A7f/\u00A7b4\u00A7f players online:\n"
+            + "\u00A7aPlayer1        \u00A7e[\u00A7b192.168.1.101\u00A7e]\n"
+            + "\u00A7aPlayer2        \u00A7e[\u00A7b192.168.1.102\u00A7e]\n"
+            + "\u00A7aPlayer3        \u00A7e[\u00A7b192.168.1.103\u00A7e]\n";
     private static final Pattern PLAYERS_LIST_PATTERN = Pattern
         .compile("(?:(?<line>[^\\n]*)\\n)");
     private static final String PLAYERS_LIST_EMPTY = "There are 0/4 players online:\n\n";
@@ -200,7 +200,7 @@ public class TestPattern {
     }
 
     private List<String> getBasicCommands(String msg, boolean skipPagination) {
-        List<String> commands = new ArrayList();
+        List<String> commands = new ArrayList<>();
         Matcher matcher = SERVER_BASIC_COMMAND_PATTERN.matcher(msg);
 
         while (matcher.find()) {
@@ -223,7 +223,7 @@ public class TestPattern {
     }
 
     private List<String> getCustomCommands(String msg) {
-        List<String> commands = new ArrayList();
+        List<String> commands = new ArrayList<>();
         Matcher matcher = SERVER_CUSTOM_COMMAND_PATTERN.matcher(msg);
 
         while (matcher.find()) {

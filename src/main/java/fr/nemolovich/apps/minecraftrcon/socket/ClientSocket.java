@@ -27,18 +27,12 @@ import org.apache.log4j.Logger;
 public class ClientSocket {
 
     private static final Logger LOGGER = Logger.getLogger(ClientSocket.class);
-
     private final Socket socket;
     private final DataInputStream input;
     private final DataOutputStream output;
 
     public ClientSocket(String host, int port, String password)
-        throws ConnectionException, AuthenticationException {
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException ex) {
-            java.util.logging.Logger.getLogger(ClientSocket.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            throws ConnectionException, AuthenticationException {
         try {
             this.socket = new Socket(host, port);
         } catch (IOException ex) {
@@ -52,7 +46,7 @@ public class ClientSocket {
             dos = new DataOutputStream(this.socket.getOutputStream());
         } catch (IOException ex) {
             LOGGER.error(String.format("Can not open stream from connection"),
-                ex);
+                    ex);
         }
         this.input = dis;
         this.output = dos;
@@ -89,29 +83,29 @@ public class ClientSocket {
             }
 
             byte[] size = Arrays.copyOfRange(buffer,
-                PacketConstants.SIZE_BLOCKS_INDEX,
-                PacketConstants.SIZE_BLOCKS_INDEX
-                + PacketConstants.SIZE_BLOCKS_SIZE);
+                    PacketConstants.SIZE_BLOCKS_INDEX,
+                    PacketConstants.SIZE_BLOCKS_INDEX
+                    + PacketConstants.SIZE_BLOCKS_SIZE);
             byte[] id = Arrays.copyOfRange(buffer, PacketConstants.ID_BLOCKS_INDEX,
-                PacketConstants.ID_BLOCKS_INDEX
-                + PacketConstants.ID_BLOCKS_SIZE);
+                    PacketConstants.ID_BLOCKS_INDEX
+                    + PacketConstants.ID_BLOCKS_SIZE);
             byte[] type = Arrays.copyOfRange(buffer,
-                PacketConstants.TYPE_BLOCKS_INDEX,
-                PacketConstants.TYPE_BLOCKS_INDEX
-                + PacketConstants.TYPE_BLOCKS_SIZE);
+                    PacketConstants.TYPE_BLOCKS_INDEX,
+                    PacketConstants.TYPE_BLOCKS_INDEX
+                    + PacketConstants.TYPE_BLOCKS_SIZE);
 
             int responseSize = ByteBuffer.wrap(size).order(ByteOrder.LITTLE_ENDIAN)
-                .getInt();
+                    .getInt();
             int responseId = ByteBuffer.wrap(id).order(ByteOrder.LITTLE_ENDIAN)
-                .getInt();
+                    .getInt();
             int responseType = ByteBuffer.wrap(type).order(ByteOrder.LITTLE_ENDIAN)
-                .getInt();
+                    .getInt();
 
             if (responseType == PacketType.SERVERDATA_RESPONSE_VALUE.value()
-                && responseId == requestId) {
+                    && responseId == requestId) {
                 int dataLength = responseSize
-                    - (PacketConstants.ID_BLOCKS_SIZE
-                    + PacketConstants.TYPE_BLOCKS_SIZE + PacketConstants.NULL_BLOCKS_SIZE);
+                        - (PacketConstants.ID_BLOCKS_SIZE
+                        + PacketConstants.TYPE_BLOCKS_SIZE + PacketConstants.NULL_BLOCKS_SIZE);
                 byte[] data = new byte[dataLength];
                 for (int i = 0; i < dataLength; i++) {
                     data[i] = buffer[PacketConstants.DATA_BLOCKS_INDEX + i];
@@ -135,7 +129,7 @@ public class ClientSocket {
     }
 
     private boolean requestForConnection(String password)
-        throws AuthenticationException {
+            throws AuthenticationException {
         boolean result = false;
 
         Packet packet = new Packet(PacketType.SERVERDATA_AUTH, password);
@@ -160,20 +154,20 @@ public class ClientSocket {
             }
 
             byte[] id = Arrays.copyOfRange(buffer, PacketConstants.ID_BLOCKS_INDEX,
-                PacketConstants.ID_BLOCKS_INDEX
-                + PacketConstants.ID_BLOCKS_SIZE);
+                    PacketConstants.ID_BLOCKS_INDEX
+                    + PacketConstants.ID_BLOCKS_SIZE);
             byte[] type = Arrays.copyOfRange(buffer,
-                PacketConstants.TYPE_BLOCKS_INDEX,
-                PacketConstants.TYPE_BLOCKS_INDEX
-                + PacketConstants.TYPE_BLOCKS_SIZE);
+                    PacketConstants.TYPE_BLOCKS_INDEX,
+                    PacketConstants.TYPE_BLOCKS_INDEX
+                    + PacketConstants.TYPE_BLOCKS_SIZE);
 
             int responseId = ByteBuffer.wrap(id).order(ByteOrder.LITTLE_ENDIAN)
-                .getInt();
+                    .getInt();
             int responseType = ByteBuffer.wrap(type).order(ByteOrder.LITTLE_ENDIAN)
-                .getInt();
+                    .getInt();
 
             if (responseType == PacketType.SERVERDATA_AUTH_RESPONSE.value()
-                && responseId == packet.getId()) {
+                    && responseId == packet.getId()) {
                 result = true;
             } else {
                 this.close();
@@ -202,5 +196,4 @@ public class ClientSocket {
             return this.socket == null || this.socket.isClosed();
         }
     }
-
 }
