@@ -1,6 +1,5 @@
 package fr.nemolovich.apps.minecraftrcon;
 
-import fr.nemolovich.apps.minecraftrcon.config.GlobalConfig;
 import fr.nemolovich.apps.minecraftrcon.exceptions.AuthenticationException;
 import fr.nemolovich.apps.minecraftrcon.exceptions.ConnectionException;
 import fr.nemolovich.apps.minecraftrcon.gui.MainFrame;
@@ -63,9 +62,6 @@ public class Launcher {
     public static void main(String[] args) throws AuthenticationException {
         BasicConfigurator.configure();
         Thread.currentThread().setName("Launcher-Thread");
-
-        GlobalConfig.getInstance().put(GlobalConfig.PLAYERS_IP_AVAILABLE, true);
-        GlobalConfig.getInstance().put(GlobalConfig.PLAYERS_IP_COMMAND, "players");
 
         if (args.length < 1 || !args[0].startsWith(RUN_FILE_PREFIX)
             || args[0].length() <= RUN_FILE_PREFIX.length()) {
@@ -142,7 +138,7 @@ public class Launcher {
         JPasswordField passwordField = new JPasswordField();
         controls.add(passwordField);
         panel.add(controls, BorderLayout.CENTER);
-
+        
         String host;
         Matcher matcher = null;
 

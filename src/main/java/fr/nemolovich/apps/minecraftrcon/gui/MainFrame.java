@@ -97,32 +97,32 @@ public class MainFrame extends javax.swing.JFrame {
      * Commands regex patterns
      */
     private static final Pattern SERVER_BASIC_COMMAND_PATTERN = Pattern
-            .compile("\n(?<cmd>/\\w+(-\\w+)*):\\s");
+        .compile("\n(?<cmd>/\\w+(-\\w+)*):\\s");
     public static final Pattern SERVER_COMMAND_PAGES_PATTERN = Pattern
-            .compile("-{7,}\\s.+:\\s.+\\s\\(\\d+/(?<nbPages>\\d+)\\)\\s-{7,}.*");
+        .compile("-{7,}\\s.+:\\s.+\\s\\(\\d+/(?<nbPages>\\d+)\\)\\s-{7,}.*");
     private static final Pattern SERVER_CUSTOM_COMMAND_PATTERN = Pattern
-            .compile("\n(?<cmd>\\w+(-\\w+)*):\\s");
+        .compile("\n(?<cmd>\\w+(-\\w+)*):\\s");
     private static final String PLAYER_NAME_PATTERN = "(?<playerName>[^\\n]+)";
     private static final String PLAYER_IP_PATTERN = "(?<playerIP>\\[\\d{1,3}(\\.\\d{1,3}){3}\\])";
     private static final Pattern PLAYER_IP_CLEANER = Pattern.compile("(?<otherChar>[^\\d\\.])");
     private static final Pattern PLAYERS_LIST_IP_PATTERN = Pattern
-            .compile(String.format("(?:(?<line>%s\\s+%s*)\\n)",
-            PLAYER_NAME_PATTERN, PLAYER_IP_PATTERN));
+        .compile(String.format("(?:(?<line>%s\\s+%s*)\\n)",
+                PLAYER_NAME_PATTERN, PLAYER_IP_PATTERN));
     private static final Pattern PLAYERS_LIST_PATTERN = Pattern
-            .compile("(?:(?<line>[^\\n]*)\\n)");
+        .compile("(?:(?<line>[^\\n]*)\\n)");
 
     /*
      * Log styles
      */
     private static final StyleContext sc = new StyleContext();
     private static final Style DEFAULT_STYLE = sc
-            .getStyle(StyleContext.DEFAULT_STYLE);
+        .getStyle(StyleContext.DEFAULT_STYLE);
     private static final Style FINE_STYLE = sc.addStyle("FINE_STYLE",
-            DEFAULT_STYLE);
+        DEFAULT_STYLE);
     private static final Style ERROR_STYLE = sc.addStyle("ERROR_STYLE",
-            DEFAULT_STYLE);
+        DEFAULT_STYLE);
     private static final Style WARNING_STYLE = sc.addStyle("WARNING_STYLE",
-            DEFAULT_STYLE);
+        DEFAULT_STYLE);
     private static final List<Style> MINECRAFT_STYLES;
 
     /*
@@ -140,9 +140,9 @@ public class MainFrame extends javax.swing.JFrame {
         Style style;
         for (MinecraftColors color : MinecraftColorsUtil.getColors()) {
             style = sc.addStyle(color.getName().toUpperCase().concat("_STYLE"),
-                    DEFAULT_STYLE);
+                DEFAULT_STYLE);
             StyleConstants.setForeground(style,
-                    Color.decode(color.getForegroundColor()));
+                Color.decode(color.getForegroundColor()));
             MINECRAFT_STYLES.add(style);
         }
     }
@@ -187,19 +187,19 @@ public class MainFrame extends javax.swing.JFrame {
      * @param args {@link String}[] - The optional parameters.
      */
     public MainFrame(final String host, final int port, final String password,
-            String... args) {
+        String... args) {
         Thread.currentThread().setName("Mainframe-Thread");
         this.host = host;
         this.port = port;
         this.password = password;
         this.args = args;
         this.commandHistory = Collections
-                .synchronizedList(new ArrayList<String>());
+            .synchronizedList(new ArrayList<String>());
         this.currentHistoryIndex = -1;
 
         try {
             setIconImage(Toolkit.getDefaultToolkit().getImage(
-                    MainFrame.class.getResource(RESOURCES_PATH
+                MainFrame.class.getResource(RESOURCES_PATH
                     .concat(FRAME_ICON))));
         } catch (Exception e) {
             LOGGER.warn("Can not load icon", e);
@@ -215,69 +215,69 @@ public class MainFrame extends javax.swing.JFrame {
         });
 
         CommandsUtils
-                .addCommand(new CommandAdapter("/cls", "Clear the console") {
-            @Override
-            public String doCommand(String... args) {
-                clearConsole();
-                return null;
-            }
-        });
-        CommandsUtils.addCommand(new CommandAdapter("/quit",
-                "Leave the rcon application") {
-            @Override
-            public String doCommand(String... args) {
-                new SwingWorker() {
-                    @Override
-                    protected Object doInBackground() throws Exception {
-                        error(String
-                                .format("Closing application in 3 secondes%n"));
-                        Thread.sleep(3000);
-                        return null;
-                    }
-
-                    @Override
-                    protected void done() {
-                        close();
-                    }
-                }.execute();
-                return null;
-            }
-        });
-        CommandsUtils.addCommand(new CommandAdapter("/colors",
-                "Display minecraft colors") {
-            @Override
-            public String doCommand(String... args) {
-                for (MinecraftColors color : MinecraftColorsUtil.getColors()) {
-                    info(String.format("%1$s%2$s%2$s - %3$s",
-                            MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX,
-                            color.getCode(), color.getName()));
+            .addCommand(new CommandAdapter("/cls", "Clear the console") {
+                @Override
+                public String doCommand(String... args) {
+                    clearConsole();
+                    return null;
                 }
-                return null;
-            }
-        });
+            });
+        CommandsUtils.addCommand(new CommandAdapter("/quit",
+            "Leave the rcon application") {
+                @Override
+                public String doCommand(String... args) {
+                    new SwingWorker() {
+                        @Override
+                        protected Object doInBackground() throws Exception {
+                            error(String
+                                .format("Closing application in 3 secondes%n"));
+                            Thread.sleep(3000);
+                            return null;
+                        }
+
+                        @Override
+                        protected void done() {
+                            close();
+                        }
+                    }.execute();
+                    return null;
+                }
+            });
+        CommandsUtils.addCommand(new CommandAdapter("/colors",
+            "Display minecraft colors") {
+                @Override
+                public String doCommand(String... args) {
+                    for (MinecraftColors color : MinecraftColorsUtil.getColors()) {
+                        info(String.format("%1$s%2$s%2$s - %3$s",
+                                MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX,
+                                color.getCode(), color.getName()));
+                    }
+                    return null;
+                }
+            });
 
         this.initComponents();
 
         this.customInitComponents();
 
-        if ((Boolean) GlobalConfig.getInstance().get(
-                GlobalConfig.PLAYERS_IP_AVAILABLE)) {
+        if (Boolean.parseBoolean(GlobalConfig.getInstance().getProperty(
+            GlobalConfig.PLAYERS_IP_AVAILABLE))) {
             this.playersListCommand = GlobalConfig.getInstance()
-                    .getProperty(GlobalConfig.PLAYERS_IP_COMMAND);
+                .getProperty(GlobalConfig.PLAYERS_IP_COMMAND);
             this.updatePlayersListTask = new ParallelTask() {
                 @Override
                 protected Object runTask() throws Exception {
                     try {
                         String resp = getRequestResponse(playersListCommand);
                         for (Entry<String, String> entry
-                                : parsePlayersWithIP(resp).entrySet()) {
+                            : parsePlayersWithIP(resp).entrySet()) {
                             ((PlayersIPTableModel) dynamicFrameList.getModel())
-                                    .addPlayer(entry.getKey(), entry.getValue());
+                                .addPlayer(entry.getKey(), entry.getValue());
                         }
                         ((PlayersIPTableModel) dynamicFrameList.getModel())
-                                .addPlayer("P1", "192.168.1.101");
+                            .addPlayer("P1", "192.168.1.101");
                         ((PlayersIPTableModel) dynamicFrameList.getModel())
-                                .addPlayer("P2", "192.168.1.102");
+                            .addPlayer("P2", "192.168.1.102");
                         write(resp, Level.INFO, dynamicFrameHelpPane);
                         dynamicFrameHelpPane.setCaretPosition(0);
                     } finally {
@@ -293,7 +293,7 @@ public class MainFrame extends javax.swing.JFrame {
                     String resp = getRequestResponse(playersListCommand);
                     for (String player : parsePlayers(resp)) {
                         ((PlayersTableModel) dynamicFrameList.getModel())
-                                .addPlayer(player);
+                            .addPlayer(player);
                     }
                     write(resp, Level.INFO, dynamicFrameHelpPane);
                     dynamicFrameHelpPane.setCaretPosition(0);
@@ -308,7 +308,7 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     public synchronized void attemptConnect()
-            throws ConnectionException, AuthenticationException {
+        throws ConnectionException, AuthenticationException {
         this.setHostText(this.host);
         this.setDisconnected();
         this.setInProgress();
@@ -329,7 +329,7 @@ public class MainFrame extends javax.swing.JFrame {
                         initServerComponents();
                         setConnected();
                         fine(String
-                                .format("Connection succeed! Welcome on Nemolovich Minecraft RCON Administration%n"));
+                            .format("Connection succeed! Welcome on Nemolovich Minecraft RCON Administration%n"));
 
                         PingThread.getInstance().setSocket(socket);
                         PingThread.getInstance().setDelay(PING_DELAY);
@@ -337,7 +337,7 @@ public class MainFrame extends javax.swing.JFrame {
                             @Override
                             protected Object doInBackground() throws Exception {
                                 error(String.format(
-                                        "The connection seems to be lost%n"));
+                                    "The connection seems to be lost%n"));
                                 socket.close();
                                 setDisconnected();
                                 return null;
@@ -380,7 +380,7 @@ public class MainFrame extends javax.swing.JFrame {
                         playerIP = playerIP.replace(m.group("otherChar"), "");
                     }
                     if (!playerName.isEmpty()
-                            && !playerName.equalsIgnoreCase("\n")) {
+                        && !playerName.equalsIgnoreCase("\n")) {
                         result.put(playerName, playerIP);
                     }
                 }
@@ -394,7 +394,7 @@ public class MainFrame extends javax.swing.JFrame {
 
         if (response.contains("\n")) {
             String resp = parseColorString(
-                    response.substring(response.indexOf("\n") + 1));
+                response.substring(response.indexOf("\n") + 1));
             Matcher matcher = PLAYERS_LIST_PATTERN.matcher(resp);
 
             String playerName;
@@ -425,13 +425,13 @@ public class MainFrame extends javax.swing.JFrame {
         }
         if (!skipPagination) {
             Matcher multiPage = SERVER_COMMAND_PAGES_PATTERN.matcher(msg
-                    .replaceAll("\\n", "\\\\n"));
+                .replaceAll("\\n", "\\\\n"));
             if (multiPage.matches()) {
                 int nbPages = Integer.valueOf(multiPage.group("nbPages"));
                 if (nbPages > 1) {
                     for (int i = 2; i <= nbPages; i++) {
                         commands.addAll(getBasicCommands(
-                                parseColorString(getNextHelp(i)), true));
+                            parseColorString(getNextHelp(i)), true));
                     }
                 }
             }
@@ -444,10 +444,10 @@ public class MainFrame extends javax.swing.JFrame {
 
         try {
             result = this.getRequestResponse(String.format("%s %s",
-                    CommandConstants.HELP_COMMAND, command));
+                CommandConstants.HELP_COMMAND, command));
         } catch (IOException ex) {
             LOGGER.error(String.format("Can not retrieve help for command %s",
-                    command), ex);
+                command), ex);
         }
         return result;
     }
@@ -460,10 +460,10 @@ public class MainFrame extends javax.swing.JFrame {
         String result = null;
         try {
             result = this.getRequestResponse(String.format("%s %s%d",
-                    CommandConstants.HELP_COMMAND, command, index));
+                CommandConstants.HELP_COMMAND, command, index));
         } catch (IOException ex) {
             LOGGER.error(String.format("Can not retrieve help %s#%d", command,
-                    index), ex);
+                index), ex);
         }
         return result;
     }
@@ -494,7 +494,7 @@ public class MainFrame extends javax.swing.JFrame {
                 LOGGER.warn("No server commands found");
             } else {
                 LOGGER.info(String.format("%d server commands retreived",
-                        serverCommands.size()));
+                    serverCommands.size()));
             }
         } catch (IOException ex) {
             String message = "Can not retrieve server commands";
@@ -515,7 +515,7 @@ public class MainFrame extends javax.swing.JFrame {
         setFocusTraversalPolicy(new FocusTraversalPolicy() {
             @Override
             public Component getComponentAfter(Container aContainer,
-                    Component aComponent) {
+                Component aComponent) {
 
                 Component result = null;
                 if (aComponent.equals(output)) {
@@ -540,7 +540,7 @@ public class MainFrame extends javax.swing.JFrame {
 
             @Override
             public Component getComponentBefore(Container aContainer,
-                    Component aComponent) {
+                Component aComponent) {
                 Component result = null;
                 if (aComponent.equals(output)) {
                     result = quitButton;
@@ -579,17 +579,17 @@ public class MainFrame extends javax.swing.JFrame {
         });
 
         ListSelectionModel listSelectionModel = this.dynamicFrameList
-                .getSelectionModel();
+            .getSelectionModel();
         listSelectionModel
-                .addListSelectionListener(new CommandListSelectionListener(
-                this.dynamicFrameList, new ParallelTask() {
-            @Override
-            protected Object runTask() throws Exception {
-                String command = (String) this.getValue();
-                selectHelpRow(command);
-                return null;
-            }
-        }));
+            .addListSelectionListener(new CommandListSelectionListener(
+                    this.dynamicFrameList, new ParallelTask() {
+                        @Override
+                        protected Object runTask() throws Exception {
+                            String command = (String) this.getValue();
+                            selectHelpRow(command);
+                            return null;
+                        }
+                    }));
 
         Button sendPlayerMsg = new Button("Send message");
         sendPlayerMsg.addActionListener(new ActionListener() {
@@ -1458,7 +1458,7 @@ public class MainFrame extends javax.swing.JFrame {
 
     private void playersItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_playersItemActionPerformed
         this.updateDynamicFrame(TableModelManager.getPlayersFrame(), true,
-                this.updatePlayersListTask);
+            this.updatePlayersListTask);
     }// GEN-LAST:event_playersItemActionPerformed
 
     private void saveItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_saveItemActionPerformed
@@ -1513,7 +1513,7 @@ public class MainFrame extends javax.swing.JFrame {
         String selection = this.output.getText();
         if (selection != null && !selection.isEmpty()) {
             Clipboard clipboard = Toolkit.getDefaultToolkit()
-                    .getSystemClipboard();
+                .getSystemClipboard();
             clipboard.setContents(new StringSelection(selection), null);
         }
     }// GEN-LAST:event_copyButtonActionPerformed
@@ -1536,9 +1536,9 @@ public class MainFrame extends javax.swing.JFrame {
 
     private void stopButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_stopButtonActionPerformed
         if (JOptionPane.showConfirmDialog(this,
-                "Do you really want to stop the server?",
-                "Stop the server? :o", JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.QUESTION_MESSAGE) == JOptionPane.OK_OPTION) {
+            "Do you really want to stop the server?",
+            "Stop the server? :o", JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.QUESTION_MESSAGE) == JOptionPane.OK_OPTION) {
             try {
                 this.error(String.format("Stop server:%n"));
                 this.parrallelInfo("%s", "stop");
@@ -1574,25 +1574,25 @@ public class MainFrame extends javax.swing.JFrame {
                     Command c = CommandsUtils.getInternalCommand(commandName);
                     c.doCommand(params);
                 } else if (commandName.equals(String.format("%s",
-                        CommandConstants.HELP_COMMAND))
-                        && params.length > 0
-                        && CommandsUtils.getInternalCommands().contains(
+                    CommandConstants.HELP_COMMAND))
+                    && params.length > 0
+                    && CommandsUtils.getInternalCommands().contains(
                         String.format("/%s", params[0]))) {
                     this.info(String.format("%s%n", CommandsUtils
-                            .getInternalCommandHelp(String.format("/%s", params[0]))));
+                        .getInternalCommandHelp(String.format("/%s", params[0]))));
                 } else {
                     try {
                         this.parrallelInfo("%s", command.substring(1));
                     } catch (IOException ex) {
                         String errorMessage = String.format(
-                                "Communication error: %s%n", ex.getMessage());
+                            "Communication error: %s%n", ex.getMessage());
                         this.error(errorMessage);
                         LOGGER.error(errorMessage, ex);
                     }
                 }
                 if (this.commandHistory.isEmpty()
-                        || !this.commandHistory.get(this.commandHistory.size() - 1)
-                        .equalsIgnoreCase(command)) {
+                    || !this.commandHistory.get(this.commandHistory.size() - 1)
+                    .equalsIgnoreCase(command)) {
                     this.commandHistory.add(command);
                 }
                 this.currentHistoryIndex = this.commandHistory.size();
@@ -1619,16 +1619,16 @@ public class MainFrame extends javax.swing.JFrame {
         if (this.currentHistoryIndex >= 1 && this.commandHistory.size() > 0) {
             this.currentHistoryIndex--;
             this.commandField.setText(this.commandHistory
-                    .get(this.currentHistoryIndex));
+                .get(this.currentHistoryIndex));
         }
     }
 
     private void selectNextCommand() {
         if (this.currentHistoryIndex > -1
-                && this.currentHistoryIndex + 1 < this.commandHistory.size()) {
+            && this.currentHistoryIndex + 1 < this.commandHistory.size()) {
             this.currentHistoryIndex++;
             this.commandField.setText(this.commandHistory
-                    .get(this.currentHistoryIndex));
+                .get(this.currentHistoryIndex));
         } else {
             this.commandField.setText(this.currentLine);
             this.currentHistoryIndex = this.commandHistory.size();
@@ -1644,9 +1644,9 @@ public class MainFrame extends javax.swing.JFrame {
             if (cmd.startsWith(line)) {
                 suggestions.add(String.format("%s ", cmd));
             } else if (line.startsWith(String.format("/%s ",
-                    CommandConstants.HELP_COMMAND))) {
+                CommandConstants.HELP_COMMAND))) {
                 String hLine = line.substring(String.format("/%s ",
-                        CommandConstants.HELP_COMMAND).length());
+                    CommandConstants.HELP_COMMAND).length());
                 if (cmd.substring(1).startsWith(hLine)) {
                     suggestions.add(String.format("%s", cmd.substring(1)));
                 }
@@ -1658,13 +1658,13 @@ public class MainFrame extends javax.swing.JFrame {
                 this.commandField.setText(text);
             } else {
                 this.commandField.setText(String.format("/%s %s ",
-                        CommandConstants.HELP_COMMAND, text));
+                    CommandConstants.HELP_COMMAND, text));
             }
         } else if (suggestions.size() > 1
-                && suggestions.size() < availableCommands.size()) {
+            && suggestions.size() < availableCommands.size()) {
             StringBuilder display = new StringBuilder();
             display.append(String.format("Available commmands (%d/%d):%n",
-                    suggestions.size(), availableCommands.size()));
+                suggestions.size(), availableCommands.size()));
             for (String cmd : suggestions) {
                 display.append(String.format("\t%s%n", cmd));
             }
@@ -1700,15 +1700,15 @@ public class MainFrame extends javax.swing.JFrame {
             help = this.getHelp(command);
             if (help != null) {
                 Matcher multiPage = SERVER_COMMAND_PAGES_PATTERN.matcher(
-                        parseColorString(help.replaceAll("\\n", "\\\\n")));
+                    parseColorString(help.replaceAll("\\n", "\\\\n")));
                 if (multiPage.matches()) {
                     StringBuilder tmp = new StringBuilder(help);
                     int nbPages = Integer.valueOf(
-                            multiPage.group("nbPages"));
+                        multiPage.group("nbPages"));
                     if (nbPages > 1) {
                         for (int i = 2; i <= nbPages; i++) {
                             tmp.append(getNextHelp(i,
-                                    String.format("%s ", command)));
+                                String.format("%s ", command)));
                         }
                     }
                     help = tmp.toString();
@@ -1733,8 +1733,8 @@ public class MainFrame extends javax.swing.JFrame {
         }
         if (error != null) {
             JXErrorPane.showDialog(null, new ErrorInfo("Open link error",
-                    "Can not open link", null, "Error", error,
-                    java.util.logging.Level.SEVERE, null));
+                "Can not open link", null, "Error", error,
+                java.util.logging.Level.SEVERE, null));
         }
     }
 
@@ -1777,7 +1777,7 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     private void updateDynamicFrame(TableFrameModel frameModel,
-            boolean clear, ParallelTask task) {
+        boolean clear, ParallelTask task) {
         if (!this.dynamicFrameList.equals(frameModel.getTable())) {
             this.dynamicFrameList.clearSelection();
 
@@ -1793,7 +1793,7 @@ public class MainFrame extends javax.swing.JFrame {
 
             this.dynamicFrame.setTitle(frameModel.getFrameTitle());
             this.dynamicFrameFilterField.setToolTipText(
-                    frameModel.getFrameFilterTooltip());
+                frameModel.getFrameFilterTooltip());
             this.dynamicFrameHeader.setText(frameModel.getFrameHeaderLabel());
             this.dynamicFrameHelpLabel.setText(frameModel.getFrameBoxLabel());
 
@@ -1804,16 +1804,16 @@ public class MainFrame extends javax.swing.JFrame {
             this.dynamicFrameButtonPanel.removeAll();
             if (buttons[0] != null) {
                 this.dynamicFrameButtonPanel.setLayout(new FlowLayout(
-                        FlowLayout.LEADING, 10, 0));
+                    FlowLayout.LEADING, 10, 0));
                 this.dynamicFrameButton1 = buttons[0];
                 this.dynamicFrameButton1.setBounds(new Rectangle(
-                        this.dynamicFrameButton1.getPreferredSize()));
+                    this.dynamicFrameButton1.getPreferredSize()));
                 this.dynamicFrameButton2 = buttons[1];
                 this.dynamicFrameButton2.setBounds(new Rectangle(
-                        this.dynamicFrameButton2.getPreferredSize()));
+                    this.dynamicFrameButton2.getPreferredSize()));
                 this.dynamicFrameButton3 = buttons[2];
                 this.dynamicFrameButton3.setBounds(new Rectangle(
-                        this.dynamicFrameButton3.getPreferredSize()));
+                    this.dynamicFrameButton3.getPreferredSize()));
                 this.dynamicFrameButtonPanel.add(this.dynamicFrameButton1);
                 this.dynamicFrameButtonPanel.add(this.dynamicFrameButton2);
                 this.dynamicFrameButtonPanel.add(this.dynamicFrameButton3);
@@ -1844,7 +1844,7 @@ public class MainFrame extends javax.swing.JFrame {
 
     private void filterCommandTable() {
         if (this.dynamicFrameStatusLabel.getText().startsWith(
-                String.format(WRONG_REGEX_PATTERN, ""))) {
+            String.format(WRONG_REGEX_PATTERN, ""))) {
             this.dynamicFrameStatusLabel.setText("");
             this.dynamicFrameStatusLabel.setToolTipText("");
             this.dynamicFrameStatusLabel.setForeground(this.fieldColor);
@@ -1854,17 +1854,17 @@ public class MainFrame extends javax.swing.JFrame {
         this.dynamicFrameFilterField.setForeground(this.fieldColor);
         try {
             ((CustomTableModel) this.dynamicFrameList.getModel()).filter(
-                    this.dynamicFrameFilterField.getText());
+                this.dynamicFrameFilterField.getText());
         } catch (PatternSyntaxException ex) {
             LOGGER.error(String.format(WRONG_REGEX_PATTERN,
-                    ex.getMessage()));
+                ex.getMessage()));
             this.dynamicFrameStatusLabel.setText(String.format(
-                    WRONG_REGEX_PATTERN, ex.getMessage()));
+                WRONG_REGEX_PATTERN, ex.getMessage()));
             this.dynamicFrameStatusLabel.setToolTipText(String.format(
-                    WRONG_REGEX_PATTERN, ex.getMessage()));
+                WRONG_REGEX_PATTERN, ex.getMessage()));
             this.dynamicFrameStatusLabel.setForeground(Color.decode("#CC0000"));
             this.dynamicFrameFilterField.setBorder(
-                    javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED,
+                javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED,
                     Color.decode("#CC9999"), Color.decode("#CC0000")));
             this.dynamicFrameFilterField.setForeground(Color.decode("#CC0000"));
         }
@@ -1872,7 +1872,7 @@ public class MainFrame extends javax.swing.JFrame {
 
     private void clearCommandTableFilter() {
         if (this.dynamicFrameStatusLabel.getText().startsWith(
-                String.format(WRONG_REGEX_PATTERN, ""))) {
+            String.format(WRONG_REGEX_PATTERN, ""))) {
             this.dynamicFrameStatusLabel.setText("");
             this.dynamicFrameStatusLabel.setToolTipText("");
             this.dynamicFrameStatusLabel.setForeground(this.fieldColor);
@@ -1886,8 +1886,8 @@ public class MainFrame extends javax.swing.JFrame {
 
     private boolean quitAskAction() {
         return JOptionPane.showConfirmDialog(this,
-                "Do you really want to leave?", "Leave client? oO?",
-                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION;
+            "Do you really want to leave?", "Leave client? oO?",
+            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION;
     }
 
     public void disconnectAction() {
@@ -1910,7 +1910,7 @@ public class MainFrame extends javax.swing.JFrame {
         this.connectionStatus.setVisible(true);
         this.connectionStatus.setText("Disconnected");
         this.connectionStatus.setForeground(Color.decode(
-                MinecraftColorsConstants.DARK_RED_COLOR_FG));
+            MinecraftColorsConstants.DARK_RED_COLOR_FG));
     }
 
     public void setConnectedStatus() {
@@ -1918,7 +1918,7 @@ public class MainFrame extends javax.swing.JFrame {
         this.connectionStatus.setVisible(true);
         this.connectionStatus.setText("Connected");
         this.connectionStatus.setForeground(Color.decode(
-                MinecraftColorsConstants.DARK_GREEN_COLOR_FG));
+            MinecraftColorsConstants.DARK_GREEN_COLOR_FG));
     }
 
     public void setInProgress() {
@@ -1944,7 +1944,7 @@ public class MainFrame extends javax.swing.JFrame {
 
     private void setState(boolean action) {
         if ((this.socket == null || this.socket != null
-                && this.socket.isClosed()) ^ action) {
+            && this.socket.isClosed()) ^ action) {
             this.playersButton.setEnabled(action);
             this.playersMenu.setEnabled(action);
             this.playersItem.setEnabled(action);
@@ -2020,7 +2020,7 @@ public class MainFrame extends javax.swing.JFrame {
     public void catchException(Exception ex) {
         LOGGER.error("Error: " + ex);
         JXErrorPane.showDialog(
-                this, new ErrorInfo("Error", "Error occured", null, "Error", ex,
+            this, new ErrorInfo("Error", "Error occured", null, "Error", ex,
                 java.util.logging.Level.SEVERE, null));
     }
 
@@ -2041,12 +2041,12 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     private void parrallelInfo(final String format, final String request)
-            throws IOException {
+        throws IOException {
         this.parrallelInfo(format, request, this.output);
     }
 
     private void parrallelInfo(final String format, final String request,
-            final JTextPane output) throws IOException {
+        final JTextPane output) throws IOException {
         new SwingWorker() {
             @Override
             protected Object doInBackground() throws Exception {
@@ -2078,7 +2078,7 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     private synchronized void write(final String message, final Level level,
-            final JTextPane output) {
+        final JTextPane output) {
 
         Style style;
         switch (level) {
@@ -2102,37 +2102,37 @@ public class MainFrame extends javax.swing.JFrame {
         try {
             if (style == DEFAULT_STYLE && !message.startsWith("/")) {
                 String[] parts = message
-                        .split(MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX);
+                    .split(MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX);
                 if (!message.startsWith(MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX)
-                        && parts.length > 0) {
+                    && parts.length > 0) {
                     parts[0] = String.format("%s%s",
-                            MinecraftColorsConstants.WHITE_COLOR_CODE, parts[0]);
+                        MinecraftColorsConstants.WHITE_COLOR_CODE, parts[0]);
                 }
                 for (String part : parts) {
                     if (!part.isEmpty()) {
                         MinecraftColors color = MinecraftColorsUtil
-                                .getColorFromCode(part.charAt(0));
+                            .getColorFromCode(part.charAt(0));
                         Style colorStyle = style;
                         if (color != null) {
                             Style mcStyle = sc.getStyle(color.getName()
-                                    .toUpperCase().concat("_STYLE"));
+                                .toUpperCase().concat("_STYLE"));
                             if (mcStyle != null) {
                                 colorStyle = mcStyle;
                             }
                         }
                         output.getDocument().insertString(
-                                output.getDocument().getLength(),
-                                part.substring(1), colorStyle);
+                            output.getDocument().getLength(),
+                            part.substring(1), colorStyle);
                     }
                 }
                 if (!message.replaceAll("\\r", "").endsWith("\n")) {
                     output.getDocument().insertString(
-                            output.getDocument().getLength(), String.format("%n"),
-                            style);
+                        output.getDocument().getLength(), String.format("%n"),
+                        style);
                 }
             } else {
                 output.getDocument().insertString(
-                        output.getDocument().getLength(), message, style);
+                    output.getDocument().getLength(), message, style);
             }
             output.setCaretPosition(output.getDocument().getLength());
         } catch (BadLocationException ex) {

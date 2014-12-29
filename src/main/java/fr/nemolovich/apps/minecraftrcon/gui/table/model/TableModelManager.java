@@ -30,8 +30,8 @@ public class TableModelManager {
             "List of connected users on server:");
 
         CustomTableModel playersTableModel;
-        if ((Boolean) GlobalConfig.getInstance().get(
-            GlobalConfig.PLAYERS_IP_AVAILABLE)) {
+        if (Boolean.parseBoolean(GlobalConfig.getInstance().getProperty(
+            GlobalConfig.PLAYERS_IP_AVAILABLE))) {
             playersTableModel = new PlayersIPTableModel();
         } else {
             playersTableModel = new PlayersTableModel();
