@@ -18,7 +18,8 @@ import fr.nemolovich.apps.minecraftrcon.gui.command.CommandConstants;
 import fr.nemolovich.apps.minecraftrcon.gui.command.CommandsUtils;
 import fr.nemolovich.apps.minecraftrcon.gui.components.Button;
 import fr.nemolovich.apps.minecraftrcon.gui.table.frame.TableFrameModel;
-import fr.nemolovich.apps.minecraftrcon.gui.table.listener.CommandListSelectionListener;
+import fr.nemolovich.apps.minecraftrcon.gui.table.listener.CustomListSelectionListener;
+import fr.nemolovich.apps.minecraftrcon.gui.table.listener.PlayerActionListener;
 import fr.nemolovich.apps.minecraftrcon.gui.table.model.CommandsTableModel;
 import fr.nemolovich.apps.minecraftrcon.gui.table.model.CustomTableModel;
 import fr.nemolovich.apps.minecraftrcon.gui.table.model.PlayersIPTableModel;
@@ -39,8 +40,6 @@ import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -578,11 +577,12 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        ListSelectionModel listSelectionModel = this.dynamicFrameList
-            .getSelectionModel();
+        ListSelectionModel listSelectionModel = TableModelManager
+            .getCommandsFrame().getTable().getSelectionModel();
         listSelectionModel
-            .addListSelectionListener(new CommandListSelectionListener(
-                    this.dynamicFrameList, new ParallelTask() {
+            .addListSelectionListener(new CustomListSelectionListener(
+                    TableModelManager.getCommandsFrame().getTable(),
+                    new ParallelTask() {
                         @Override
                         protected Object runTask() throws Exception {
                             String command = (String) this.getValue();
@@ -591,30 +591,35 @@ public class MainFrame extends javax.swing.JFrame {
                         }
                     }));
 
-        Button sendPlayerMsg = new Button("Send message");
-        sendPlayerMsg.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("Send message!");
-            }
-        });
+        Button sendPlayerMsg = new Button("Send message",
+            "Send a message to selected player");
+        sendPlayerMsg.addActionListener(new PlayerActionListener(
+            this.dynamicFrame, TableModelManager.getPlayersFrame().getTable()) {
+                @Override
+                public void action(String playerName) {
+                    System.out.println("Send message to: " + playerName);
+                }
+            });
         sendPlayerMsg.setWidth(145);
         TableModelManager.getPlayersFrame().addButton(sendPlayerMsg);
-        Button promotePlayerButton = new Button("Promote");
-        promotePlayerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("White list!");
-            }
-        });
+        Button promotePlayerButton = new Button("Promote",
+            "Add the selected player to white list");
+        promotePlayerButton.addActionListener(new PlayerActionListener(
+            this.dynamicFrame, TableModelManager.getPlayersFrame().getTable()) {
+                @Override
+                public void action(String playerName) {
+                    System.out.println("Promote player: " + playerName);
+                }
+            });
         TableModelManager.getPlayersFrame().addButton(promotePlayerButton);
-        Button banPlayerButton = new Button("Ban");
-        banPlayerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("Ban list!");
-            }
-        });
+        Button banPlayerButton = new Button("Ban", "Ban the selected player");
+        banPlayerButton.addActionListener(new PlayerActionListener(
+            this.dynamicFrame, TableModelManager.getPlayersFrame().getTable()) {
+                @Override
+                public void action(String playerName) {
+                    System.out.println("Ban player: " + playerName);
+                }
+            });
         TableModelManager.getPlayersFrame().addButton(banPlayerButton);
     }
 
@@ -792,9 +797,9 @@ public class MainFrame extends javax.swing.JFrame {
         aboutFrame.setLocationRelativeTo(null);
 
         dynamicFrame.setTitle("List of available commands");
-        dynamicFrame.setMinimumSize(new java.awt.Dimension(480, 400));
+        dynamicFrame.setMinimumSize(new java.awt.Dimension(525, 400));
         dynamicFrame.setModal(true);
-        dynamicFrame.setPreferredSize(new java.awt.Dimension(500, 465));
+        dynamicFrame.setPreferredSize(new java.awt.Dimension(525, 465));
         dynamicFrame.setType(java.awt.Window.Type.POPUP);
 
         dynamicFrameHeader.setFont(MIRIAM_FONT_NORMAL_BOLD);
@@ -897,7 +902,7 @@ public class MainFrame extends javax.swing.JFrame {
                 .addComponent(dynamicFrameButton2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(dynamicFrameButton3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(95, Short.MAX_VALUE))
         );
         dynamicFrameButtonPanelLayout.setVerticalGroup(
             dynamicFrameButtonPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -924,38 +929,36 @@ public class MainFrame extends javax.swing.JFrame {
         dynamicFrame.getContentPane().setLayout(dynamicFrameLayout);
         dynamicFrameLayout.setHorizontalGroup(
             dynamicFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, dynamicFrameLayout.createSequentialGroup()
-                .addGroup(dynamicFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+            .addGroup(dynamicFrameLayout.createSequentialGroup()
+                .addGroup(dynamicFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, dynamicFrameLayout.createSequentialGroup()
+                        .addComponent(dynamicFrameButtonPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 398, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(closedynamicFrame, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(dynamicFrameLayout.createSequentialGroup()
                         .addContainerGap()
                         .addComponent(dynamicFrameHelpScroll))
                     .addGroup(dynamicFrameLayout.createSequentialGroup()
                         .addGap(10, 10, 10)
                         .addGroup(dynamicFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(dynamicFrameHeader, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addGroup(dynamicFrameLayout.createSequentialGroup()
-                                .addGroup(dynamicFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(dynamicFrameHelpLabel, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addGroup(dynamicFrameLayout.createSequentialGroup()
-                                        .addGap(12, 12, 12)
-                                        .addComponent(dynamicFrameFilterLabel)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(dynamicFrameFilterField)))
+                                .addGap(12, 12, 12)
+                                .addComponent(dynamicFrameFilterLabel)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(dynamicFrameFilterField)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(dynamicFrameClearFilterButton, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addComponent(dynamicFrameListScroll, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(dynamicFrameHeader, javax.swing.GroupLayout.DEFAULT_SIZE, 480, Short.MAX_VALUE)
-                            .addComponent(dynamicFrameStatusLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                    .addGroup(dynamicFrameLayout.createSequentialGroup()
-                        .addComponent(dynamicFrameButtonPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 387, Short.MAX_VALUE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(closedynamicFrame, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addComponent(dynamicFrameStatusLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(dynamicFrameHelpLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
                 .addContainerGap())
         );
         dynamicFrameLayout.setVerticalGroup(
             dynamicFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(dynamicFrameLayout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(dynamicFrameHeader)
+                .addComponent(dynamicFrameHeader, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(dynamicFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(dynamicFrameClearFilterButton, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -967,7 +970,7 @@ public class MainFrame extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(dynamicFrameHelpLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(dynamicFrameHelpScroll, javax.swing.GroupLayout.DEFAULT_SIZE, 161, Short.MAX_VALUE)
+                .addComponent(dynamicFrameHelpScroll, javax.swing.GroupLayout.DEFAULT_SIZE, 90, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(dynamicFrameStatusLabel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -1013,7 +1016,7 @@ public class MainFrame extends javax.swing.JFrame {
 
         copyButton.setFont(MIRIAM_FONT_NORMAL_BOLD);
         copyButton.setMnemonic('c');
-        copyButton.setText("copy");
+        copyButton.setText("Copy");
         copyButton.setToolTipText("Copy the console content");
         copyButton.setMaximumSize(new java.awt.Dimension(97, 26));
         copyButton.setMinimumSize(new java.awt.Dimension(97, 26));
@@ -1026,7 +1029,7 @@ public class MainFrame extends javax.swing.JFrame {
 
         clearButton.setFont(MIRIAM_FONT_NORMAL_BOLD);
         clearButton.setMnemonic('l');
-        clearButton.setText("clear");
+        clearButton.setText("Clear");
         clearButton.setToolTipText("Clear the console");
         clearButton.setMaximumSize(new java.awt.Dimension(97, 26));
         clearButton.setMinimumSize(new java.awt.Dimension(97, 26));
@@ -1052,7 +1055,7 @@ public class MainFrame extends javax.swing.JFrame {
 
         playersButton.setFont(MIRIAM_FONT_NORMAL_BOLD);
         playersButton.setMnemonic('p');
-        playersButton.setText("players");
+        playersButton.setText("Players");
         playersButton.setToolTipText("Display the players list");
         playersButton.setEnabled(false);
         playersButton.setMaximumSize(new java.awt.Dimension(97, 26));
@@ -1066,7 +1069,7 @@ public class MainFrame extends javax.swing.JFrame {
 
         saveButton.setFont(MIRIAM_FONT_NORMAL_BOLD);
         saveButton.setMnemonic('s');
-        saveButton.setText("save");
+        saveButton.setText("Save");
         saveButton.setToolTipText("Save the server world");
         saveButton.setEnabled(false);
         saveButton.setMaximumSize(new java.awt.Dimension(97, 26));
@@ -1080,7 +1083,7 @@ public class MainFrame extends javax.swing.JFrame {
 
         stopButton.setFont(MIRIAM_FONT_NORMAL_BOLD);
         stopButton.setMnemonic('t');
-        stopButton.setText("stop");
+        stopButton.setText("Stop");
         stopButton.setToolTipText("Stop the server");
         stopButton.setEnabled(false);
         stopButton.setMaximumSize(new java.awt.Dimension(97, 26));
@@ -1764,10 +1767,10 @@ public class MainFrame extends javax.swing.JFrame {
 
     private void clear() {
         CommandsUtils.clearAll();
-        this.clearCommandFrame();
+        this.clearDynamicFrame();
     }
 
-    private void clearCommandFrame() {
+    private void clearDynamicFrame() {
         this.dynamicFrameList = TableModelManager.getCommandsFrame().getTable();
         ((CustomTableModel) dynamicFrameList.getModel()).clear();
         this.dynamicFrameList.clearSelection();
@@ -1828,15 +1831,16 @@ public class MainFrame extends javax.swing.JFrame {
             this.dynamicFrameButtonPanel.validate();
             this.dynamicFrameButtonPanel.repaint();
 
-            if (clear) {
-                ((CustomTableModel) this.dynamicFrameList.getModel()).clear();
-            }
-            if (task != null) {
-                task.execute();
-            }
-
             this.dynamicFrame.pack();
             this.dynamicFrameListScroll.setViewportView(this.dynamicFrameList);
+        }
+        if (clear) {
+            ((CustomTableModel) this.dynamicFrameList.getModel()).clear();
+            this.dynamicFrameList.clearSelection();
+            this.dynamicFrameHelpPane.setText("");
+        }
+        if (task != null) {
+            task.execute();
         }
         this.dynamicFrameFilterField.requestFocusInWindow();
         this.dynamicFrame.setVisible(true);

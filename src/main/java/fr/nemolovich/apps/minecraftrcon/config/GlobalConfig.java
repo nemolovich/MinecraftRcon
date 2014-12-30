@@ -8,6 +8,7 @@ package fr.nemolovich.apps.minecraftrcon.config;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 import org.apache.log4j.Logger;
 
@@ -50,7 +51,16 @@ public class GlobalConfig extends Properties {
         } catch (IOException ex) {
             LOGGER.warn(String.format(
                 "Can not load config file '%s'. Using default configuration.",
-                configFileName), ex);
+                configFileName));
+            InputStream defaultConfig = GlobalConfig.class.getResourceAsStream(
+                "/fr/nemolovich/apps/minecraftrcon/config/default_config.cfg");
+            try {
+                this.load(defaultConfig);
+            } catch (IOException ioe) {
+                LOGGER.warn("Can not load default config.", ioe);
+            }
+            
+            System.out.println("");
         }
     }
 

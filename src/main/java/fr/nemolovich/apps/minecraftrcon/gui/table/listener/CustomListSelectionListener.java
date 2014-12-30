@@ -15,12 +15,12 @@ import org.jdesktop.swingx.JXTable;
  *
  * @author Nemolovich
  */
-public class CommandListSelectionListener implements ListSelectionListener {
+public class CustomListSelectionListener implements ListSelectionListener {
 
     private final JXTable table;
     private final ParallelTask worker;
 
-    public CommandListSelectionListener(JXTable table, ParallelTask worker) {
+    public CustomListSelectionListener(JXTable table, ParallelTask worker) {
         this.table = table;
         this.worker = worker;
     }
