@@ -6,6 +6,7 @@
 package fr.nemolovich.apps.minecraftrcon.gui;
 
 import fr.nemolovich.apps.minecraftrcon.Launcher;
+import fr.nemolovich.apps.minecraftrcon.StringUtils;
 import fr.nemolovich.apps.minecraftrcon.config.GlobalConfig;
 import fr.nemolovich.apps.minecraftrcon.exceptions.AuthenticationException;
 import fr.nemolovich.apps.minecraftrcon.exceptions.BrowserException;
@@ -108,7 +109,7 @@ public class MainFrame extends javax.swing.JFrame {
         .compile(String.format("(?:(?<line>%s\\s+%s*)\\n)",
                 PLAYER_NAME_PATTERN, PLAYER_IP_PATTERN));
     private static final Pattern PLAYERS_LIST_PATTERN = Pattern
-        .compile("(?:(?<line>[^\\n]*)\\n)");
+        .compile("(?:(?<line>\\w+)(?:,\\s|\\n){0,1})");
 
     /*
      * Log styles
@@ -273,10 +274,6 @@ public class MainFrame extends javax.swing.JFrame {
                             ((PlayersIPTableModel) dynamicFrameList.getModel())
                                 .addPlayer(entry.getKey(), entry.getValue());
                         }
-                        ((PlayersIPTableModel) dynamicFrameList.getModel())
-                            .addPlayer("P1", "192.168.1.101");
-                        ((PlayersIPTableModel) dynamicFrameList.getModel())
-                            .addPlayer("P2", "192.168.1.102");
                         write(resp, Level.INFO, dynamicFrameHelpPane);
                         dynamicFrameHelpPane.setCaretPosition(0);
                     } finally {
@@ -597,7 +594,27 @@ public class MainFrame extends javax.swing.JFrame {
             this.dynamicFrame, TableModelManager.getPlayersFrame().getTable()) {
                 @Override
                 public void action(String playerName) {
-                    System.out.println("Send message to: " + playerName);
+                    dynamicFrameHelpPane.setText("");
+                    String res;
+                    try {
+                        String message = "";
+                        while (message.isEmpty()) {
+                            message = JOptionPane.showInputDialog(dynamicFrame,
+                                "Enter the message to send", "Message to send",
+                                JOptionPane.QUESTION_MESSAGE);
+                            if (message == null) {
+                                return;
+                            }
+                        }
+                        res = getRequestResponse(String.format("tell %s %s",
+                                playerName, message));
+                        write(res, Level.INFO, dynamicFrameHelpPane);
+                    } catch (IOException ex) {
+                        res = String.format("Can not promote players '%s'",
+                            playerName);
+                        write(res, Level.ERROR, dynamicFrameHelpPane);
+                        LOGGER.error(res, ex);
+                    }
                 }
             });
         sendPlayerMsg.setWidth(145);
@@ -608,7 +625,19 @@ public class MainFrame extends javax.swing.JFrame {
             this.dynamicFrame, TableModelManager.getPlayersFrame().getTable()) {
                 @Override
                 public void action(String playerName) {
-                    System.out.println("Promote player: " + playerName);
+                    dynamicFrameHelpPane.setText("");
+                    String res, res1, res2;
+                    try {
+                        res1 = getRequestResponse(String.format("whitelist add %s", playerName));
+                        res2 = getRequestResponse(String.format("op %s", playerName));
+                        res = String.format("%s%s", res1, res2);
+                        write(res, Level.INFO, dynamicFrameHelpPane);
+                    } catch (IOException ex) {
+                        res = String.format("Can not promote players '%s'",
+                            playerName);
+                        write(res, Level.ERROR, dynamicFrameHelpPane);
+                        LOGGER.error(res, ex);
+                    }
                 }
             });
         TableModelManager.getPlayersFrame().addButton(promotePlayerButton);
@@ -617,7 +646,43 @@ public class MainFrame extends javax.swing.JFrame {
             this.dynamicFrame, TableModelManager.getPlayersFrame().getTable()) {
                 @Override
                 public void action(String playerName) {
-                    System.out.println("Ban player: " + playerName);
+                    dynamicFrameHelpPane.setText("");
+                    String res;
+                    String players = null;
+                    try {
+                        boolean banIP = false;
+                        if (Boolean.parseBoolean(GlobalConfig.getInstance().getProperty(
+                                GlobalConfig.PLAYERS_IP_AVAILABLE))) {
+                            players = getRequestResponse(playersListCommand);
+                            banIP = JOptionPane.showConfirmDialog(
+                                dynamicFrame, "Do you want ban IP too?", "",
+                                JOptionPane.YES_NO_OPTION,
+                                JOptionPane.QUESTION_MESSAGE)
+                            == JOptionPane.YES_OPTION;
+                        }
+                        res = getRequestResponse(String.format("ban %s",
+                                playerName));
+                        if (banIP) {
+                            String playerIP = null;
+                            for (Entry<String, String> entry
+                            : parsePlayersWithIP(players).entrySet()) {
+                                if (entry.getKey().equalsIgnoreCase(playerName)) {
+                                    playerIP = entry.getValue();
+                                    break;
+                                }
+                            }
+                            if (playerIP != null) {
+                                res += getRequestResponse(String.format("ban-ip %s",
+                                        playerIP));
+                            }
+                        }
+                        write(res, Level.INFO, dynamicFrameHelpPane);
+                    } catch (IOException ex) {
+                        res = String.format("Can not ban players '%s'",
+                            playerName);
+                        write(res, Level.ERROR, dynamicFrameHelpPane);
+                        LOGGER.error(res, ex);
+                    }
                 }
             });
         TableModelManager.getPlayersFrame().addButton(banPlayerButton);
@@ -1666,10 +1731,28 @@ public class MainFrame extends javax.swing.JFrame {
         } else if (suggestions.size() > 1
             && suggestions.size() < availableCommands.size()) {
             StringBuilder display = new StringBuilder();
-            display.append(String.format("Available commmands (%d/%d):%n",
+            String newLine = null;
+            display.append(String.format(
+                "%1$s%2$sAvailable commmands (%4$d/%5$d):%n%1$s%3$s",
+                MinecraftColorsConstants.MINECRAFT_COLOR_PREFIX,
+                MinecraftColorsConstants.GRAY_COLOR_CODE,
+                MinecraftColorsConstants.WHITE_COLOR_CODE,
                 suggestions.size(), availableCommands.size()));
             for (String cmd : suggestions) {
                 display.append(String.format("\t%s%n", cmd));
+                if (newLine == null) {
+                    newLine = cmd;
+                } else {
+                    newLine = StringUtils.getCommonStringStart(newLine, cmd);
+                }
+            }
+            if (newLine != null) {
+                if (newLine.startsWith("/")) {
+                    this.commandField.setText(newLine);
+                } else {
+                    this.commandField.setText(String.format("/%s %s",
+                        CommandConstants.HELP_COMMAND, newLine));
+                }
             }
             this.info(display.toString());
         }
@@ -1952,8 +2035,9 @@ public class MainFrame extends javax.swing.JFrame {
             this.playersButton.setEnabled(action);
             this.playersMenu.setEnabled(action);
             this.playersItem.setEnabled(action);
-            this.banListItem.setEnabled(action);
-            this.whiteListItem.setEnabled(action);
+            // TODO: use action
+            this.banListItem.setEnabled(false);
+            this.whiteListItem.setEnabled(false);
             this.commandsListItem.setEnabled(action);
             this.saveButton.setEnabled(action);
             this.saveItem.setEnabled(action);

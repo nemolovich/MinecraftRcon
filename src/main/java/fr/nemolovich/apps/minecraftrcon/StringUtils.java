@@ -30,4 +30,16 @@ public class StringUtils {
 
         return result.toString();
     }
+
+    public static final String getCommonStringStart(String str1, String str2) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < Math.min(str1.length(), str2.length()); i++) {
+            char c1 = str1.charAt(i);
+            if (c1 != str2.charAt(i)) {
+                break;
+            }
+            result.append(c1);
+        }
+        return result.toString();
+    }
 }

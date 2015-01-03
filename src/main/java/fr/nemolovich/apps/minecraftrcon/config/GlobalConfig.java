@@ -32,6 +32,17 @@ public class GlobalConfig extends Properties {
     }
 
     private GlobalConfig() {
+
+        LOGGER.info("Loading default configuration...");
+        InputStream defaultConfig = GlobalConfig.class.getResourceAsStream(
+            "/fr/nemolovich/apps/minecraftrcon/config/default_config.cfg");
+        try {
+            this.load(defaultConfig);
+            LOGGER.info("Default configuration loaded");
+        } catch (IOException ioe) {
+            LOGGER.warn("Can not load default config.", ioe);
+        }
+
         String configFileName = CONFIG_FILE_PATH;
         String configFileProperty = System.getProperty("configFile");
         if (configFileProperty != null && !configFileProperty.isEmpty()) {
@@ -40,7 +51,7 @@ public class GlobalConfig extends Properties {
         try {
             File configFile = new File(configFileName);
             if (configFile.exists()) {
-                LOGGER.info(String.format("Loading file '%s'...",
+                LOGGER.info(String.format("Loading config file '%s'...",
                     configFileName));
                 this.load(new FileReader(configFile));
                 LOGGER.info(String.format("Config loaded from '%s'",
@@ -50,17 +61,7 @@ public class GlobalConfig extends Properties {
             }
         } catch (IOException ex) {
             LOGGER.warn(String.format(
-                "Can not load config file '%s'. Using default configuration.",
-                configFileName));
-            InputStream defaultConfig = GlobalConfig.class.getResourceAsStream(
-                "/fr/nemolovich/apps/minecraftrcon/config/default_config.cfg");
-            try {
-                this.load(defaultConfig);
-            } catch (IOException ioe) {
-                LOGGER.warn("Can not load default config.", ioe);
-            }
-            
-            System.out.println("");
+                "Can not load configuration file: " + ex.getMessage()));
         }
     }
 

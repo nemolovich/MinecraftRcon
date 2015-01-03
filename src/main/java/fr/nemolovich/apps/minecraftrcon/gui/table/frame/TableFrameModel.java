@@ -6,7 +6,6 @@
 package fr.nemolovich.apps.minecraftrcon.gui.table.frame;
 
 import fr.nemolovich.apps.minecraftrcon.gui.table.CustomTable;
-import fr.nemolovich.apps.minecraftrcon.gui.table.listener.CustomListSelectionListener;
 import fr.nemolovich.apps.minecraftrcon.gui.table.model.CustomTableModel;
 import javax.swing.JButton;
 
@@ -20,8 +19,6 @@ public class TableFrameModel {
     private String frameHeaderLabel;
     private String frameBoxLabel;
     private String frameFilterTooltip;
-
-    private CustomListSelectionListener listener;
 
     private CustomTable table;
     private CustomTableModel model;
@@ -64,14 +61,6 @@ public class TableFrameModel {
 
     public void setFrameFilterTooltip(String frameFilterTooltip) {
         this.frameFilterTooltip = frameFilterTooltip;
-    }
-
-    public CustomListSelectionListener getListener() {
-        return this.listener;
-    }
-
-    public void setListener(CustomListSelectionListener listener) {
-        this.listener = listener;
     }
 
     public CustomTableModel getModel() {

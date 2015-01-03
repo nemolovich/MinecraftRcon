@@ -111,16 +111,14 @@ public class TestPattern {
                 PLAYER_NAME_PATTERN, PLAYER_IP_PATTERN));
     private static final String PLAYERS_LIST_IP_EMPTY = "\u00A7fThere are no players online\n";
     private static final String PLAYERS_LIST_IP = "\u00A7fThere are \u00A7a1\u00A7f/\u00A7b4\u00A7f players online:\n"
-            + "\u00A7aPlayer1        \u00A7e[\u00A7b192.168.1.101\u00A7e]\n"
-            + "\u00A7aPlayer2        \u00A7e[\u00A7b192.168.1.102\u00A7e]\n"
-            + "\u00A7aPlayer3        \u00A7e[\u00A7b192.168.1.103\u00A7e]\n";
+        + "\u00A7aPlayer1        \u00A7e[\u00A7b192.168.1.101\u00A7e]\n"
+        + "\u00A7aPlayer2        \u00A7e[\u00A7b192.168.1.102\u00A7e]\n"
+        + "\u00A7aPlayer3        \u00A7e[\u00A7b192.168.1.103\u00A7e]\n";
     private static final Pattern PLAYERS_LIST_PATTERN = Pattern
-        .compile("(?:(?<line>[^\\n]*)\\n)");
+        .compile("(?:(?<line>\\w+)(?:,\\s|\\n){0,1})");
     private static final String PLAYERS_LIST_EMPTY = "There are 0/4 players online:\n\n";
-    private static final String PLAYERS_LIST = "There are 1/4 players online:\n"
-        + "Player1\n"
-        + "Player2\n"
-        + "Player3\n";
+    private static final String PLAYERS_LIST = "There are 2/4 players online:\n"
+        + "Nemolovich, P1, P2\n";
 
     @Test
     public void test1() throws FileNotFoundException, IOException {

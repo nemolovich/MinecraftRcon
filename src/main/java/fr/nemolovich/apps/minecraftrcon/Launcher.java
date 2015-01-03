@@ -139,9 +139,6 @@ public class Launcher {
         controls.add(passwordField);
         panel.add(controls, BorderLayout.CENTER);
         
-        hostField.setText("raspberry:20066");
-        passwordField.setText("Minecraft2580");
-        
         String host;
         Matcher matcher = null;
 
