@@ -138,7 +138,7 @@ public class Launcher {
         JPasswordField passwordField = new JPasswordField();
         controls.add(passwordField);
         panel.add(controls, BorderLayout.CENTER);
-        
+
         String host;
         Matcher matcher = null;
 
@@ -270,7 +270,8 @@ public class Launcher {
         return result;
     }
 
-    public static final void checkForUpdates(String... args) {
+    public static final boolean checkForUpdates(String... args) {
+        boolean updated = false;
         try {
             LOGGER.info("Check for updates...");
 
@@ -292,7 +293,7 @@ public class Launcher {
                     }
                 } else {
                     LOGGER.error("Can not retrieve remote information");
-                    return;
+                    return updated;
                 }
             }
             String remoteVersion;
@@ -372,6 +373,8 @@ public class Launcher {
                         optArgs.toArray(new String[0]));
                     try {
                         updater.update();
+                        PingThread.getInstance().interrupt();
+                        updated = true;
                     } catch (IOException ioe) {
                         JXErrorPane.showDialog(null, new ErrorInfo(
                             "Restarting error",
@@ -388,5 +391,6 @@ public class Launcher {
         } catch (IOException ex) {
             LOGGER.error("Can not retrieve remote version", ex);
         }
+        return updated;
     }
 }

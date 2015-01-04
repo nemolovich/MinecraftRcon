@@ -41,6 +41,8 @@ import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -73,6 +75,7 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 import org.apache.log4j.Logger;
 import org.jdesktop.swingx.JXErrorPane;
+import org.jdesktop.swingx.JXTable;
 import org.jdesktop.swingx.error.ErrorInfo;
 
 /**
@@ -175,7 +178,6 @@ public class MainFrame extends javax.swing.JFrame {
     private final String password;
     private final Border fieldBorder;
     private final Color fieldColor;
-    private final ParallelTask updatePlayersListTask;
     private String playersListCommand;
 
     /**
@@ -260,11 +262,12 @@ public class MainFrame extends javax.swing.JFrame {
 
         this.customInitComponents();
 
+        ParallelTask updatePlayersListTask;
         if (Boolean.parseBoolean(GlobalConfig.getInstance().getProperty(
             GlobalConfig.PLAYERS_IP_AVAILABLE))) {
             this.playersListCommand = GlobalConfig.getInstance()
                 .getProperty(GlobalConfig.PLAYERS_IP_COMMAND);
-            this.updatePlayersListTask = new ParallelTask() {
+            updatePlayersListTask = new ParallelTask() {
                 @Override
                 protected Object runTask() throws Exception {
                     try {
@@ -283,7 +286,7 @@ public class MainFrame extends javax.swing.JFrame {
             };
         } else {
             this.playersListCommand = CommandConstants.PLAYERS_LIST_COMMAND;
-            this.updatePlayersListTask = new ParallelTask() {
+            updatePlayersListTask = new ParallelTask() {
                 @Override
                 protected Object runTask() throws Exception {
                     String resp = getRequestResponse(playersListCommand);
@@ -297,6 +300,37 @@ public class MainFrame extends javax.swing.JFrame {
                 }
             };
         }
+        TableModelManager.getPlayersFrame().setUpdateTask(updatePlayersListTask);
+        ParallelTask updateBannedPlayersListTask = new ParallelTask() {
+            @Override
+            protected Object runTask() throws Exception {
+                String resp = getRequestResponse("banlist");
+                for (String player : parseBannedPlayers(resp)) {
+                    ((PlayersTableModel) dynamicFrameList.getModel())
+                        .addPlayer(player);
+                }
+                write(resp, Level.INFO, dynamicFrameHelpPane);
+                dynamicFrameHelpPane.setCaretPosition(0);
+                return null;
+            }
+        };
+        TableModelManager.getBannedPlayersFrame().setUpdateTask(
+            updateBannedPlayersListTask);
+        ParallelTask updateOPPlayersListTask = new ParallelTask() {
+            @Override
+            protected Object runTask() throws Exception {
+                String resp = getRequestResponse("whitelist list");
+                for (String player : parseOPPlayers(resp)) {
+                    ((PlayersTableModel) dynamicFrameList.getModel())
+                        .addPlayer(player);
+                }
+                write(resp, Level.INFO, dynamicFrameHelpPane);
+                dynamicFrameHelpPane.setCaretPosition(0);
+                return null;
+            }
+        };
+        TableModelManager.getOPPlayersFrame().setUpdateTask(
+            updateOPPlayersListTask);
 
         this.setVisible(true);
         this.fieldBorder = this.dynamicFrameFilterField.getBorder();
@@ -385,12 +419,37 @@ public class MainFrame extends javax.swing.JFrame {
         return result;
     }
 
+    public static List<String> parseBannedPlayers(String response) {
+        List<String> result = parsePlayers(response);
+        result.remove("and");
+        return result;
+    }
+
+    public static List<String> parseOPPlayers(String response) {
+        List<String> result = new ArrayList<>();
+
+        if (response.contains(":")) {
+            String resp = parseColorString(response.substring(
+                response.indexOf(':') + 1));
+            Matcher matcher = PLAYERS_LIST_PATTERN.matcher(resp);
+
+            String playerName;
+            while (matcher.find()) {
+                playerName = matcher.group("line");
+                if (!playerName.isEmpty() && !playerName.equalsIgnoreCase("\n")) {
+                    result.add(playerName);
+                }
+            }
+        }
+        return result;
+    }
+
     public static List<String> parsePlayers(String response) {
         List<String> result = new ArrayList<>();
 
         if (response.contains("\n")) {
             String resp = parseColorString(
-                response.substring(response.indexOf("\n") + 1));
+                response.substring(response.indexOf('\n') + 1));
             Matcher matcher = PLAYERS_LIST_PATTERN.matcher(resp);
 
             String playerName;
@@ -646,7 +705,6 @@ public class MainFrame extends javax.swing.JFrame {
             this.dynamicFrame, TableModelManager.getPlayersFrame().getTable()) {
                 @Override
                 public void action(String playerName) {
-                    dynamicFrameHelpPane.setText("");
                     String res;
                     String players = null;
                     try {
@@ -676,6 +734,13 @@ public class MainFrame extends javax.swing.JFrame {
                                         playerIP));
                             }
                         }
+                        TableFrameModel framemodel
+                        = TableModelManager.getPlayersFrame();
+                        if (framemodel.getUpdateTask() != null) {
+                            framemodel.getModel().clear();
+                            framemodel.getUpdateTask().execute();
+                        }
+                        dynamicFrameHelpPane.setText("");
                         write(res, Level.INFO, dynamicFrameHelpPane);
                     } catch (IOException ex) {
                         res = String.format("Can not ban players '%s'",
@@ -686,6 +751,87 @@ public class MainFrame extends javax.swing.JFrame {
                 }
             });
         TableModelManager.getPlayersFrame().addButton(banPlayerButton);
+        Button pardonPlayerButton = new Button("Pardon",
+            "Remove the selected player from ban list");
+        pardonPlayerButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                TableFrameModel framemodel
+                    = TableModelManager.getBannedPlayersFrame();
+                JXTable table = framemodel.getTable();
+                int index = table.getSelectedRow();
+                if (index != -1) {
+                    String playerName
+                        = (String) ((CustomTableModel) table.getModel())
+                        .getValueAt(table.convertRowIndexToModel(index), 0);
+                    String res;
+                    try {
+                        res = getRequestResponse(String.format("pardon %s",
+                            playerName));
+                        if (framemodel.getUpdateTask() != null) {
+                            framemodel.getModel().clear();
+                            framemodel.getUpdateTask().execute();
+                        }
+                        dynamicFrameHelpPane.setText("");
+                        write(res, Level.INFO, dynamicFrameHelpPane);
+                    } catch (IOException ex) {
+                        res = String.format("Can not pardon players '%s'",
+                            playerName);
+                        write(res, Level.ERROR, dynamicFrameHelpPane);
+                        LOGGER.error(res, ex);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(dynamicFrame,
+                        "Please select a player", "Selection is empty",
+                        JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
+        TableModelManager.getBannedPlayersFrame().addButton(pardonPlayerButton);
+        Button deopPlayerButton = new Button("Remove",
+            "Remove the selected player from white list");
+        deopPlayerButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                TableFrameModel framemodel
+                    = TableModelManager.getOPPlayersFrame();
+                JXTable table = framemodel.getTable();
+                int index = table.getSelectedRow();
+                if (index != -1) {
+                    String playerName
+                        = (String) ((CustomTableModel) table.getModel())
+                        .getValueAt(table.convertRowIndexToModel(index), 0);
+                    String res, res1, res2;
+                    try {
+                        res1 = getRequestResponse(String.format("whitelist remove %s",
+                            playerName));
+                        res2 = getRequestResponse(String.format("deop %s",
+                            playerName));
+                        res = String.format("%s%s", res1, res2);
+                        if (framemodel.getUpdateTask() != null) {
+                            framemodel.getModel().clear();
+                            framemodel.getUpdateTask().execute();
+                        }
+                        dynamicFrameHelpPane.setText("");
+                        write(res, Level.INFO, dynamicFrameHelpPane);
+                    } catch (IOException ex) {
+                        res = String.format("Can not demote players '%s'",
+                            playerName);
+                        write(res, Level.ERROR, dynamicFrameHelpPane);
+                        LOGGER.error(res, ex);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(dynamicFrame,
+                        "Please select a player", "Selection is empty",
+                        JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
+        TableModelManager.getOPPlayersFrame().addButton(deopPlayerButton);
     }
 
     /**
@@ -864,7 +1010,6 @@ public class MainFrame extends javax.swing.JFrame {
         dynamicFrame.setTitle("List of available commands");
         dynamicFrame.setMinimumSize(new java.awt.Dimension(525, 400));
         dynamicFrame.setModal(true);
-        dynamicFrame.setPreferredSize(new java.awt.Dimension(525, 465));
         dynamicFrame.setType(java.awt.Window.Type.POPUP);
 
         dynamicFrameHeader.setFont(MIRIAM_FONT_NORMAL_BOLD);
@@ -1039,9 +1184,10 @@ public class MainFrame extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(dynamicFrameStatusLabel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(dynamicFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE, false)
+                .addGroup(dynamicFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(closedynamicFrame, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(dynamicFrameButtonPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(dynamicFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(dynamicFrameButtonPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addContainerGap())
         );
 
@@ -1479,11 +1625,13 @@ public class MainFrame extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void banListItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_banListItemActionPerformed
-        // TODO add your handling code here:
+        this.updateDynamicFrame(TableModelManager.getBannedPlayersFrame(),
+            true);
     }//GEN-LAST:event_banListItemActionPerformed
 
     private void whiteListItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_whiteListItemActionPerformed
-        // TODO add your handling code here:
+        this.updateDynamicFrame(TableModelManager.getOPPlayersFrame(),
+            true);
     }//GEN-LAST:event_whiteListItemActionPerformed
 
     private void dynamicFrameClearFilterButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_dynamicFrameClearFilterButtonActionPerformed
@@ -1507,7 +1655,7 @@ public class MainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_closedynamicFrameActionPerformed
 
     private void commandsListItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_commandsListItemActionPerformed
-        this.updateDynamicFrame(TableModelManager.getCommandsFrame(), false, null);
+        this.updateDynamicFrame(TableModelManager.getCommandsFrame(), false);
     }// GEN-LAST:event_commandsListItemActionPerformed
 
     private void reconnectItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_reconnectItemActionPerformed
@@ -1525,8 +1673,7 @@ public class MainFrame extends javax.swing.JFrame {
     }// GEN-LAST:event_quitItemActionPerformed
 
     private void playersItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_playersItemActionPerformed
-        this.updateDynamicFrame(TableModelManager.getPlayersFrame(), true,
-            this.updatePlayersListTask);
+        this.updateDynamicFrame(TableModelManager.getPlayersFrame(), true);
     }// GEN-LAST:event_playersItemActionPerformed
 
     private void saveItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_saveItemActionPerformed
@@ -1539,9 +1686,14 @@ public class MainFrame extends javax.swing.JFrame {
 
     private void updatesItemActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_updatesItemActionPerformed
         new SwingWorker() {
+
             @Override
             protected Object doInBackground() throws Exception {
-                Launcher.checkForUpdates(args);
+                Thread.currentThread().setName("Updater-Thread");
+                if (Launcher.checkForUpdates(args)) {
+                    setDisconnected();
+                    exit(true);
+                }
                 return null;
             }
         }.execute();
@@ -1863,7 +2015,7 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     private void updateDynamicFrame(TableFrameModel frameModel,
-        boolean clear, ParallelTask task) {
+        boolean clear) {
         if (!this.dynamicFrameList.equals(frameModel.getTable())) {
             this.dynamicFrameList.clearSelection();
 
@@ -1894,18 +2046,22 @@ public class MainFrame extends javax.swing.JFrame {
                 this.dynamicFrameButton1 = buttons[0];
                 this.dynamicFrameButton1.setBounds(new Rectangle(
                     this.dynamicFrameButton1.getPreferredSize()));
-                this.dynamicFrameButton2 = buttons[1];
-                this.dynamicFrameButton2.setBounds(new Rectangle(
-                    this.dynamicFrameButton2.getPreferredSize()));
-                this.dynamicFrameButton3 = buttons[2];
-                this.dynamicFrameButton3.setBounds(new Rectangle(
-                    this.dynamicFrameButton3.getPreferredSize()));
                 this.dynamicFrameButtonPanel.add(this.dynamicFrameButton1);
-                this.dynamicFrameButtonPanel.add(this.dynamicFrameButton2);
-                this.dynamicFrameButtonPanel.add(this.dynamicFrameButton3);
                 this.dynamicFrameButton1.setVisible(true);
-                this.dynamicFrameButton2.setVisible(true);
-                this.dynamicFrameButton3.setVisible(true);
+                if (buttons[1] != null) {
+                    this.dynamicFrameButton2 = buttons[1];
+                    this.dynamicFrameButton2.setBounds(new Rectangle(
+                        this.dynamicFrameButton2.getPreferredSize()));
+                    this.dynamicFrameButtonPanel.add(this.dynamicFrameButton2);
+                    this.dynamicFrameButton2.setVisible(true);
+                    if (buttons[2] != null) {
+                        this.dynamicFrameButton3 = buttons[2];
+                        this.dynamicFrameButton3.setBounds(new Rectangle(
+                            this.dynamicFrameButton3.getPreferredSize()));
+                        this.dynamicFrameButtonPanel.add(this.dynamicFrameButton3);
+                        this.dynamicFrameButton3.setVisible(true);
+                    }
+                }
             } else {
                 this.dynamicFrameButton1 = null;
                 this.dynamicFrameButton2 = null;
@@ -1922,8 +2078,8 @@ public class MainFrame extends javax.swing.JFrame {
             this.dynamicFrameList.clearSelection();
             this.dynamicFrameHelpPane.setText("");
         }
-        if (task != null) {
-            task.execute();
+        if (frameModel.getUpdateTask() != null) {
+            frameModel.getUpdateTask().execute();
         }
         this.dynamicFrameFilterField.requestFocusInWindow();
         this.dynamicFrame.setVisible(true);
@@ -2035,9 +2191,8 @@ public class MainFrame extends javax.swing.JFrame {
             this.playersButton.setEnabled(action);
             this.playersMenu.setEnabled(action);
             this.playersItem.setEnabled(action);
-            // TODO: use action
-            this.banListItem.setEnabled(false);
-            this.whiteListItem.setEnabled(false);
+            this.banListItem.setEnabled(action);
+            this.whiteListItem.setEnabled(action);
             this.commandsListItem.setEnabled(action);
             this.saveButton.setEnabled(action);
             this.saveItem.setEnabled(action);
@@ -2138,6 +2293,7 @@ public class MainFrame extends javax.swing.JFrame {
         new SwingWorker() {
             @Override
             protected Object doInBackground() throws Exception {
+                Thread.currentThread().setName("Parrallel-Action-Thread");
                 try {
                     String result = getRequestResponse(request);
                     info(String.format(format, result), output);

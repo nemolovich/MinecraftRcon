@@ -3,11 +3,12 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.nemolovich.apps.minecraftrcon</groupId>
     <artifactId>MinecraftRcon</artifactId>
-    <version>0.0.7</version>
+    <version>0.0.8</version>
     <name>Minecraft RCON</name>
     <packaging>jar</packaging>
 
-    <description>Minecraft RCON administration
+    <description>
+        Minecraft RCON administration
     		0.0.4: Fixed SwingWorker to parallelize server request action
     		0.0.5:  * Added ping to check if socket still connected
                         * Disconnect status when error
@@ -15,7 +16,9 @@
                         * Removed connection pending when error
     		0.0.7:  * Players list displayed in dynamic frame
                         * Using GlobalConfig to load config from file
-                        * Can get IP from player when available</description>
+                        * Can get IP from player when available
+    		0.0.8:  * Ban list and white list available with option button to remove
+    </description>
 
     <dependencies>
         <dependency>

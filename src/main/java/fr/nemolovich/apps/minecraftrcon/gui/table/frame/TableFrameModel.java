@@ -5,6 +5,7 @@
  */
 package fr.nemolovich.apps.minecraftrcon.gui.table.frame;
 
+import fr.nemolovich.apps.minecraftrcon.gui.ParallelTask;
 import fr.nemolovich.apps.minecraftrcon.gui.table.CustomTable;
 import fr.nemolovich.apps.minecraftrcon.gui.table.model.CustomTableModel;
 import javax.swing.JButton;
@@ -22,6 +23,8 @@ public class TableFrameModel {
 
     private CustomTable table;
     private CustomTableModel model;
+    
+    private ParallelTask updateTask;
 
     private final JButton[] buttonsList;
     private int nbButton;
@@ -88,5 +91,13 @@ public class TableFrameModel {
 
     public JButton[] getButtonsList() {
         return this.buttonsList;
+    }
+
+    public void setUpdateTask(ParallelTask updateTask) {
+        this.updateTask = updateTask;
+    }
+
+    public ParallelTask getUpdateTask() {
+        return updateTask;
     }
 }
