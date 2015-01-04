@@ -51,7 +51,7 @@ public class Launcher {
     private static final String REMOTE_DOWNLOAD
         = "https://rawgit.com/nemolovich/MinecraftRcon/master/MinecraftRconGUI/downloads/";
 
-    private static final String APP_NAME = "MinecraftRcon";
+    private static final String APP_NAME = "MinecraftRconGUI";
 
     private static final String RUN_FILE_PREFIX = "runFile=";
 
@@ -60,18 +60,6 @@ public class Launcher {
      * @throws AuthenticationException
      */
     public static void main(String[] args) throws AuthenticationException {
-        if (true) {
-            try {
-                doNotUse("MinecraftRcon.db",
-                    "jar:file:/C:/Users/Nemolovich/Desktop/MinecraftRCON/MinecraftRconGUI.jar!/");
-                return;
-            } catch (IOException ex) {
-                java.util.logging.Logger.getLogger(Launcher.class.getName()).log(Level.SEVERE,
-                    null, ex);
-                return;
-            }
-        }
-        
         BasicConfigurator.configure();
         Thread.currentThread().setName("Launcher-Thread");
 
