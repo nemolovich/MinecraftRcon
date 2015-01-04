@@ -5,7 +5,7 @@
     <parent>
         <groupId>fr.nemolovich.apps.minecraftrcon</groupId>
         <artifactId>MinecraftRcon</artifactId>
-        <version>0.0.9</version>
+        <version>0.1.0</version>
     </parent>
     
     <artifactId>MinecraftRconConsole</artifactId>
@@ -15,6 +15,7 @@
     <description>
         Minecraft RCON administration Console
     		0.0.9:  * Separated projects to externalize ClientSocket
+                0.1.0:  * First version
     </description>
 
     <dependencies>

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.nemolovich.apps.minecraftrcon</groupId>
     <artifactId>MinecraftRcon</artifactId>
-    <version>0.0.9</version>
+    <version>0.1.0</version>
     <name>Minecraft RCON</name>
     <packaging>pom</packaging>
     
@@ -16,6 +16,7 @@
     <description>
         Minecraft RCON administration
     		0.0.9:  * Separated projects to externalize ClientSocket
+                0.1.0:  * First version
     </description>
 
     <dependencies>
